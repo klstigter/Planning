@@ -4,7 +4,7 @@
         <field name="name">bcproject.list</field>
         <field name="model">bcproject</field>
         <field name="arch" type="xml">
-            <list>
+            <list create="false" edit="false" delete="false">
                 <field name="job_no"/>
                 <field name="job_desc"/>
                 <field name="partner_id"/>
@@ -27,16 +27,10 @@
                     <notebook>
                         <page string="Tasks">
                             <field name="task_line">
-                                <list editable="bottom">
+                                <list create="false" edit="false" delete="false">
                                     <field name="task_no"/>
                                     <field name="task_desc"/>
-                                    <!-- Inline Planning Lines Subform inside Tasks -->
-                                    <field name="planning_line">
-                                        <list editable="bottom">
-                                            <field name="planning_line_no"/>
-                                            <field name="planning_line_desc"/>
-                                        </list>
-                                    </field>
+                                    <field name="planning_line" widget="one2many_list"/>
                                 </list>
                             </field>
                         </page>
@@ -51,7 +45,7 @@
         <field name="name">bctask.list</field>
         <field name="model">bctask</field>
         <field name="arch" type="xml">
-            <list>
+            <list create="false" edit="false" delete="false">
                 <field name="task_no"/>
                 <field name="task_desc"/>
                 <field name="job_id"/>
@@ -74,7 +68,7 @@
                     <notebook>
                         <page string="Planning Lines">
                             <field name="planning_line">
-                                <list editable="bottom">
+                                <list create="false" edit="false" delete="false">
                                     <field name="planning_line_no"/>
                                     <field name="planning_line_desc"/>
                                     <field name="job_id"/>
@@ -92,7 +86,7 @@
         <field name="name">bcplanningline.list</field>
         <field name="model">bcplanningline</field>
         <field name="arch" type="xml">
-            <list>
+            <list create="false" edit="false" delete="false">
                 <field name="planning_line_no"/>
                 <field name="planning_line_desc"/>
                 <field name="job_id"/>
@@ -107,14 +101,12 @@
         <field name="model">bcplanningline</field>
         <field name="arch" type="xml">
             <form>
-                <sheet>
-                    <group>
-                        <field name="planning_line_no"/>
-                        <field name="planning_line_desc"/>
-                        <field name="job_id"/>
-                        <field name="task_id"/>
-                    </group>
-                </sheet>
+                <group>
+                    <field name="planning_line_no"/>
+                    <field name="planning_line_desc"/>
+                    <field name="job_id"/>
+                    <field name="task_id"/>
+                </group>
             </form>
         </field>
     </record>
