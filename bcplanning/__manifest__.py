@@ -26,7 +26,6 @@
     'data': [
         'security/ir.model.access.csv',
         'views/bc_planning_views.xml',
-        # 'views/portal_projects.xml',
         'views/remove_website_odoo_logo.xml',
         'views/website_menu.xml',
         'views/partner_projects.xml',
