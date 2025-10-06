@@ -111,11 +111,24 @@ class PlanningApiController(http.Controller):
         # Build task data
         task_data = []
         for t in tasks:
+            # Attach Planning Lines
+            pl_data = []
+            for pl in t.planning_line:
+                pl_data.append({
+                    'id': pl.id,
+                    'pl_no': pl.planning_line_no,
+                    'pl_desc': pl.planning_line_desc,
+                })
+
+            # Task
             task_data.append({
                 'id': t.id,
                 'task_no': t.task_no,
-                'task_desc': t.task_desc,                
-            })
+                'task_desc': t.task_desc,   
+                'planningline_count': len(t.planning_line), 
+                'planninglines': pl_data
+            })            
+
 
         datas = {
             'tasks': task_data,

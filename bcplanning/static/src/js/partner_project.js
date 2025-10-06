@@ -2,7 +2,7 @@
 
 import publicWidget from "@web/legacy/js/public/public_widget";
 publicWidget.registry.MaterialRequest = publicWidget.Widget.extend({
-    selector: "#wrap",
+    selector: "#project_wrap",
     events: {        
         'click .open_project_planning_line': '_onClick_open_project_planning_line', // Maps click event to handler
     },
