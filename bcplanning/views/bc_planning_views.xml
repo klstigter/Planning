@@ -26,12 +26,49 @@
                     </group>
                     <notebook>
                         <page string="Tasks">
-                            <field name="task_line">
+                            <field name="task_line" mode="list,kanban">
                                 <list create="false" edit="false" delete="false">
                                     <field name="task_no"/>
                                     <field name="task_desc"/>
                                     <field name="planning_line" widget="one2many_list"/>
                                 </list>
+                                <!-- -->
+                                <kanban class="o_kanban_mobile">
+                                    <templates>
+                                        <t t-name="card">
+                                            <div class="ps-0 pe-0">
+                                                <div class="row g-0">
+                                                    <div class="col-2 pe-3">
+                                                        <field name="job_id" widget="image" options="{'preview_image': 'image_128'}" class="w-100"/>
+                                                    </div>
+                                                    <div class="col-10">
+                                                        <div class="row">
+                                                            <div class="col">
+                                                                <span class="fw-bold">
+                                                                    <field name="task_no"/>
+                                                                </span>
+                                                                <span class="text-muted">(<field name="job_id"/>)</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="text-muted small">
+                                                            <field name="task_desc"/>
+                                                        </div>
+                                                        <div class="mt-1">
+                                                            <span class="badge bg-secondary">
+                                                                <field name="planning_line" widget="kanban_count"/>
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </t>
+                                    </templates>
+                                    <field name="job_id"/>
+                                    <field name="task_no"/>
+                                    <field name="task_desc"/>
+                                    <field name="planning_line"/>
+                                </kanban>
+                                <!-- -->
                             </field>
                         </page>
                     </notebook>
@@ -187,17 +224,17 @@
     <record id="action_bcproject" model="ir.actions.act_window">
         <field name="name">Projects</field>
         <field name="res_model">bcproject</field>
-        <field name="view_mode">kanban,list,form</field>
+        <field name="view_mode">list,kanban,form</field>
     </record>
     <record id="action_bctask" model="ir.actions.act_window">
         <field name="name">Tasks</field>
         <field name="res_model">bctask</field>
-        <field name="view_mode">kanban,list,form</field>
+        <field name="view_mode">list,kanban,form</field>
     </record>
     <record id="action_bcplanningline" model="ir.actions.act_window">
         <field name="name">Planning Lines</field>
         <field name="res_model">bcplanningline</field>
-        <field name="view_mode">kanban,list,form</field>
+        <field name="view_mode">list,kanban,form</field>
     </record>
     <record id="action_bcexternaluser" model="ir.actions.act_window">
         <field name="name">External User vs Vendor</field>
