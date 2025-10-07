@@ -1,10 +1,9 @@
 /** @odoo-module **/
-
-import { jsonrpc } from "@web/core/network/rpc_service";
+import { rpc } from "@web/core/network/rpc";
 import publicWidget from "@web/legacy/js/public/public_widget";
 
 publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
-    selector: ".table.table-bordered", // Table containing planning lines
+    selector: "#task_wrap",
 
     events: {
         'click .remove-resource-row': '_onRemoveResourceRow',
@@ -12,10 +11,6 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
         'change .resource-select': '_onResourceChanged',
     },
 
-    /**
-     * Remove a planning line (resource row).
-     * Triggers backend delete, then removes from DOM.
-     */
     _onRemoveResourceRow: function(ev) {
         ev.preventDefault();
         const $btn = $(ev.currentTarget);
@@ -27,75 +22,114 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
             return;
         }
 
-        jsonrpc('/bcplanningline/delete', { planningline_id: planninglineId }).then(() => {
+        rpc('/bcplanningline/delete', { planningline_id: planninglineId }).then(() => {
             $tr.fadeOut(200, function() { $tr.remove(); });
         });
     },
 
-    /**
-     * Add a new planning line (resource row) for the given task.
-     * Triggers backend add, then inserts into DOM.
-     */
     _onAddResourceRow: function(ev) {
         ev.preventDefault();
         const $btn = $(ev.currentTarget);
-        // Find task_id (from closest parent row)
-        const $taskRow = $btn.closest('tr').prevAll('tr').first();
-        const taskId = $taskRow.data('taskId');
-        if (!taskId) return;
+        // Find the closest parent table with the attribute
+        const $planningTable = $btn.closest('td').find('table[data-task-id]').first();
+        let taskId = $planningTable.data('taskId');
+        
+        // If not found, go up from the button in case the button is not inside <td>
+        if (!taskId) {
+            taskId = $btn.closest('table[data-task-id]').data('taskId');
+        }
+        if (!taskId) {
+            alert("Task ID not found!");
+            return;
+        }
 
-        jsonrpc('/bcplanningline/add', { task_id: taskId }).then((result) => {
-            // Insert new row after last planning line row
+        rpc('/bcplanningline/add', { task_id: taskId }).then((result) => {
+            console.log(result);
             const $table = $btn.closest('table');
             const $newRow = $(`
-                <tr data-planningline-id="${result.planningline_id}">
-                  <td>
+                <tr>
+                <td>
+                    <span class="data_task_id" style="display:none">${result.planningline_id}</span>
                     <select class="resource-select">
-                      ${result.resource_options}
+                    <option value=""> - </option>
+                    ${result.resource_options}
                     </select>
-                  </td>
-                  <td style="padding-left: 32px;">
-                    <button type="button" class="btn btn-sm btn-danger remove-resource-row" aria-label="Delete">
-                      <i class="bi bi-x"></i>
+                </td>
+                <td style="padding-left: 32px;">
+                    <button type="button" class="btn btn-sm btn-secondary remove-resource-row">
+                    Remove
                     </button>
-                  </td>
+                </td>
                 </tr>
             `);
-            $table.find('tr').last().before($newRow);
+            $planningTable.find('tbody').append($newRow);
         });
     },
 
-    /**
-     * Update the resource of a planning line.
-     */
+    // _onAddResourceRow: function(ev) {
+    //     ev.preventDefault();
+    //     const $btn = $(ev.currentTarget);
+
+    //     // Find the closest planning line table with the data-task-id attribute
+    //     const $planningTable = $btn.closest('td').find('table[data-task-id]').first();
+    //     let taskId = $planningTable.data('taskId');        
+    //     // If not found, go up from the button in case the button is not inside <td>
+    //     if (!taskId) {
+    //         taskId = $btn.closest('table[data-task-id]').data('taskId');
+    //     }
+    //     if (!taskId) {
+    //         alert("Task ID not found!");
+    //         return;
+    //     }
+
+    //     rpc('/bcplanningline/add', { task_id: taskId }).then((result) => {
+    //         console.log(result);
+
+    //         // Insert the new row into the planning lines table's tbody
+    //         const $newRow = $(`
+    //             <tr>
+    //             <td>
+    //                 <span class="data_task_id" style="display:none">${result.planningline_id}</span>
+    //                 <select class="resource-select">
+    //                 ${result.resource_options}
+    //                 </select>
+    //             </td>
+    //             <td style="padding-left: 32px;">
+    //                 <button type="button" class="btn btn-sm btn-danger remove-resource-row" aria-label="Delete">
+    //                 <i class="bi bi-x"></i>
+    //                 </button>
+    //             </td>
+    //             </tr>
+    //         `);
+
+    //         // Always append to tbody, not before the last row
+    //         $planningTable.find('tbody').append($newRow);
+    //     });
+    // },
+
     _onResourceChanged: function(ev) {
         const $select = $(ev.currentTarget);
-        const $tr = $select.closest('tr');
-        const planninglineId = $tr.data('planninglineId');
+        const $td = $select.closest('td'); // Get current td
+        const planninglineId = $td.find('.data_planningline_id').text().trim();
         const resourceId = $select.val();
 
         if (!planninglineId) return;
 
-        jsonrpc('/bcplanningline/update', {
+        rpc('/bcplanningline/update', {
             planningline_id: planninglineId,
             resource_id: resourceId
-        }).then(() => {
-            // Optionally show a success notification
+        }).then(function(result) {
+            alert((result.result || 'Unknown result'));
         });
     },
 
-    /**
-     * On widget start, set data-planningline-id and data-task-id for rows.
-     */
     start: function () {
         this.$('tr').each(function() {
             const $tr = $(this);
-            // Set planningline_id
             const planninglineId = $tr.find('select.resource-select').data('planningline-id');
             if (planninglineId) {
                 $tr.attr('data-planningline-id', planninglineId);
             }
-            // Set task_id if available
             const taskId = $tr.find('td').first().data('task-id');
             if (taskId) {
                 $tr.attr('data-task-id', taskId);

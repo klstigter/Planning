@@ -1,7 +1,7 @@
 /** @odoo-module **/
 
 import publicWidget from "@web/legacy/js/public/public_widget";
-publicWidget.registry.MaterialRequest = publicWidget.Widget.extend({
+publicWidget.registry.ProjectRequest = publicWidget.Widget.extend({
     selector: "#project_wrap",
     events: {        
         'click .open_project_planning_line': '_onClick_open_project_planning_line', // Maps click event to handler

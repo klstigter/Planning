@@ -34,6 +34,7 @@
     'assets': {
         'web.assets_frontend': [            
             '/bcplanning/static/src/js/partner_project.js',
+            '/bcplanning/static/src/js/partner_task.js',
         ],
     },
     # only loaded in demonstration mode

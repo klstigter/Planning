@@ -32,11 +32,13 @@
                                         </td>
                                         <td>
                                             <t t-if="task['planninglines']">
-                                                <table>
+                                                <table t-att-data-task-id="task['id']">
                                                     <t t-foreach="task['planninglines']" t-as="pl">
                                                         <tr>
                                                             <td>
-                                                                <!-- <span t-esc="pl['pl_desc']"/> -->
+                                                                <!-- Hidden spans for data -->
+                                                                <span class="data_planningline_id" style="display:none"><t t-esc="pl['id']"/></span>
+                                                                <!-- -->
                                                                 <select class="resource-select">
                                                                     <option value=""> - </option>
                                                                     <t t-foreach="resources" t-as="resource">

@@ -87,10 +87,9 @@ class PlanningApiController(http.Controller):
 
     @http.route('/partner/tasks', type='http', auth='user', website=True)
     def partner_tasks(self, job_id=None, job_no=None, job_name=None, **kwargs):
-        print(job_id)
-        print(job_no)
-        print(job_name)
-        
+        # print(job_id)
+        # print(job_no)
+        # print(job_name)        
         user = request.env.user
 
         # Get Vendor from bcexternaluser (adapt this if your vendor relation is different)
@@ -149,12 +148,62 @@ class PlanningApiController(http.Controller):
             'partner_name': vendor.vendor_id.name if vendor.vendor_id else 'No partner found.',
         }
         return request.render('bcplanning.web_partner_task_template', datas)
-        
+    
     # ********************* end of http group ********************************************************
 
 
+    # ********************* jsonrpc ********************************************************
 
-    
+    @http.route('/bcplanningline/update', type='jsonrpc', auth='user', methods=['POST'])
+    def update_resource(self, planningline_id, resource_id):
+        user = request.env.user
+        line = request.env['bcplanningline'].with_user(user.id).browse(int(planningline_id))
+        if not line.exists():
+            return {'result': 'Planning line not found'}
+        if resource_id:
+            line.resource_id = int(resource_id)
+        else:
+            line.resource_id = False
+        return {'result': 'updated'}
+
+    @http.route('/bcplanningline/add', type='jsonrpc', auth='user', methods=['POST'])
+    def add_planningline(self, task_id):
+        user = request.env.user
+        # Validate task_id
+        task = request.env['bctask'].with_user(user.id).browse(int(task_id))
+        if not task.exists():
+            return {'result': 'Task not found'}
+        
+        # Generate a unique planning_line_no (can be customized)
+        max_no = request.env['bcplanningline'].with_user(user.id).search_count([('task_id', '=', task.id)])
+        planning_line_no = str(max_no + 1)
+        
+        # Create the new planning line
+        planning_line = request.env['bcplanningline'].with_user(user.id).create({
+            'planning_line_no': planning_line_no,
+            'planning_line_desc': 'New Planning Line',
+            'task_id': task.id,
+        })
+
+        # Get Vendor from bcexternaluser (adapt this if your vendor relation is different)
+        resource_options = ""
+        vendors = request.env['bcexternaluser'].sudo().search([('user_id', '=', user.id)], limit=1)
+        if not vendors:
+            return {'result': 'User to vendor mapping not found!'}
+        vendor = vendors[0]
+        res = request.env['res.partner'].sudo().search([('id','=',vendor.vendor_id.id)])
+        if res.child_ids:
+            for contact in res.child_ids:
+                resource_options += f'<option value="{contact.id}">{contact.name}</option>'
+
+        return {
+            'result': {
+                'planningline_id': planning_line.id,
+                'resource_options': resource_options,
+            },            
+        }
+
+    # ********************* end of jsonrpc ********************************************************
 
     # # render your QWeb template (portal_projects) as a portal page
     # @http.route('/my/projects', type='http', auth='user', website=True)
