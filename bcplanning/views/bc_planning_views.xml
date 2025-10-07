@@ -8,6 +8,7 @@
                 <field name="job_no"/>
                 <field name="job_desc"/>
                 <field name="partner_id"/>
+                <field name="number_of_tasks"/>
             </list>
         </field>
     </record>
@@ -23,6 +24,7 @@
                         <field name="job_no"/>
                         <field name="job_desc"/>
                         <field name="partner_id"/>
+                        <field name="number_of_tasks"/>
                     </group>
                     <notebook>
                         <page string="Tasks">
@@ -47,16 +49,22 @@
                                                                 <span class="fw-bold">
                                                                     <field name="task_no"/>
                                                                 </span>
-                                                                <span class="text-muted">(<field name="job_id"/>)</span>
                                                             </div>
                                                         </div>
                                                         <div class="text-muted small">
                                                             <field name="task_desc"/>
                                                         </div>
                                                         <div class="mt-1">
-                                                            <span class="badge bg-secondary">
-                                                                <field name="planning_line" widget="kanban_count"/>
-                                                            </span>
+                                                            <table>
+                                                                <tr>
+                                                                    <td>Planning Lines: </td>
+                                                                    <td>
+                                                                        <span class="badge bg-secondary">
+                                                                            <field name="number_of_lines" widget="kanban_count"/>
+                                                                        </span>
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -67,6 +75,7 @@
                                     <field name="task_no"/>
                                     <field name="task_desc"/>
                                     <field name="planning_line"/>
+                                    <field name="number_of_lines"/>
                                 </kanban>
                                 <!-- -->
                             </field>
@@ -89,7 +98,7 @@
                             <field name="job_no"/>
                             <div><strong><field name="job_desc"/></strong></div>
                             <div>Partner: <field name="partner_id"/></div>
-                            <div>Tasks: <field name="task_line" widget="kanban_count"/></div>
+                            <div>Tasks: <field name="number_of_tasks"/></div>
                         </div>
                     </t>
                 </templates>
@@ -128,7 +137,7 @@
                                 <list create="false" edit="false" delete="false">
                                     <field name="planning_line_no"/>
                                     <field name="planning_line_desc"/>
-                                    <field name="job_id"/>
+                                    <field name="product_id"/>
                                 </list>
                                 <kanban class="o_kanban_mobile">
                                     <templates>
@@ -136,16 +145,16 @@
                                             <div class="ps-0 pe-0">
                                                 <div class="row g-0">
                                                     <div class="col-2 pe-3">
-                                                        <field name="job_id" widget="image" options="{'preview_image': 'image_128'}" class="w-100"/>
+                                                        <field name="resource_id" widget="image" options="{'preview_image': 'image_128'}" class="w-100"/>
                                                     </div>
                                                     <div class="col-10">
                                                         <div class="row">
                                                             <div class="col">
                                                                 <span class="fw-bold"><field name="planning_line_no"/></span>
-                                                                <span class="text-muted">(<field name="task_id"/>)</span>
                                                             </div>
                                                         </div>
                                                         <div class="text-muted small">
+                                                            <field name="product_id"/>
                                                             <field name="planning_line_desc"/>
                                                         </div>
                                                     </div>
@@ -153,10 +162,11 @@
                                             </div>
                                         </t>
                                     </templates>
-                                    <field name="job_id"/>
+                                    <field name="resource_id"/>
                                     <field name="planning_line_no"/>
                                     <field name="planning_line_desc"/>
                                     <field name="task_id"/>
+                                    <field name="product_id"/>
                                 </kanban>
                             </field>
                         </page>
@@ -178,7 +188,18 @@
                             <field name="task_no"/>
                             <div><strong><field name="task_desc"/></strong></div>
                             <div>Project: <field name="job_id"/></div>
-                            <div>Planning Lines: <field name="planning_line" widget="kanban_count"/></div>
+                            <div>
+                                <table>
+                                    <tr>
+                                        <td>Planning Lines: </td>
+                                        <td>
+                                            <span class="badge bg-secondary">
+                                                <field name="number_of_lines" widget="kanban_count"/>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
                         </div>
                     </t>
                 </templates>
@@ -194,6 +215,7 @@
             <list create="false" edit="false" delete="false">
                 <field name="planning_line_no"/>
                 <field name="planning_line_desc"/>
+                <field name="product_id"/>
                 <field name="job_id"/>
                 <field name="task_id"/>
             </list>
@@ -209,6 +231,7 @@
                 <group>
                     <field name="planning_line_no"/>
                     <field name="planning_line_desc"/>
+                    <field name="product_id"/>
                     <field name="job_id"/>
                     <field name="task_id"/>
                 </group>
@@ -227,6 +250,7 @@
                         <div class="oe_kanban_card">
                             <field name="planning_line_no"/>
                             <div><strong><field name="planning_line_desc"/></strong></div>
+                            <field name="product_id"/>
                             <div>Task: <field name="task_id"/></div>
                             <div>Project: <field name="job_id"/></div>
                         </div>

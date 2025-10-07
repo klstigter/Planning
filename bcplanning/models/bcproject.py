@@ -15,6 +15,9 @@ class bcplanning_project(models.Model):
         inverse_name='job_id',
         string="Task Lines",
         copy=True, bypass_search_access=True)
+    number_of_tasks = fields.Integer(
+        string="Number of Tasks",
+        compute="_get_numberoftasks", store=False)
 
     @api.constrains('job_no')
     def _check_job_no_unique(self):
@@ -26,6 +29,10 @@ class bcplanning_project(models.Model):
             ], limit=1)
             if existing:
                 raise ValidationError('Job No must be unique!')
+
+    def _get_numberoftasks(self):
+        for rec in self:
+            rec.number_of_tasks = len(rec.task_line)
 
     def projectcreationfrombc(self, posted_data):
         if isinstance(posted_data, str):
@@ -94,6 +101,9 @@ class bcplanning_task(models.Model):
         inverse_name='task_id',
         string="Planning Lines",
         copy=True, bypass_search_access=True)
+    number_of_lines = fields.Integer(
+        string="Planning Lines",
+        compute="_get_numberofplanninglines", store=False)
     
     @api.constrains('task_no', 'job_id')
     def _check_job_no_unique(self):
@@ -107,6 +117,9 @@ class bcplanning_task(models.Model):
             if existing:
                 raise ValidationError('Task No must be unique per Job No.!')
 
+    def _get_numberofplanninglines(self):
+        for rec in self:
+            rec.number_of_lines = len(rec.planning_line)
 
 class bcplanning_line(models.Model):
     _name = 'bcplanningline'
@@ -124,6 +137,12 @@ class bcplanning_line(models.Model):
         string="Project Reference",
         compute="_get_job_id", store=True)
     resource_id = fields.Many2one('res.partner', string='Partner', domain="[]")
+    product_id = fields.Many2one(
+        comodel_name='product.product',
+        string='Product',        
+        ondelete='restrict',
+        index=True,
+    )
 
     @api.depends('task_id')
     def _get_job_id(self):
