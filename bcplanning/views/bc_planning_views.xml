@@ -40,6 +40,26 @@
         </field>
     </record>
 
+    <!-- Kanban View for bcproject -->
+    <record id="view_bcproject_kanban" model="ir.ui.view">
+        <field name="name">bcproject.kanban</field>
+        <field name="model">bcproject</field>
+        <field name="arch" type="xml">
+            <kanban>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_card">
+                            <field name="job_no"/>
+                            <div><strong><field name="job_desc"/></strong></div>
+                            <div>Partner: <field name="partner_id"/></div>
+                            <div>Tasks: <field name="task_line" widget="kanban_count"/></div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
     <!-- List View for bctask -->
     <record id="view_bctask_list" model="ir.ui.view">
         <field name="name">bctask.list</field>
@@ -81,6 +101,26 @@
         </field>
     </record>
 
+    <!-- Kanban View for bctask -->
+    <record id="view_bctask_kanban" model="ir.ui.view">
+        <field name="name">bctask.kanban</field>
+        <field name="model">bctask</field>
+        <field name="arch" type="xml">
+            <kanban>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_card">
+                            <field name="task_no"/>
+                            <div><strong><field name="task_desc"/></strong></div>
+                            <div>Project: <field name="job_id"/></div>
+                            <div>Planning Lines: <field name="planning_line" widget="kanban_count"/></div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
     <!-- List View for bcplanningline -->
     <record id="view_bcplanningline_list" model="ir.ui.view">
         <field name="name">bcplanningline.list</field>
@@ -111,6 +151,26 @@
         </field>
     </record>
 
+    <!-- Kanban View for bcplanningline -->
+    <record id="view_bcplanningline_kanban" model="ir.ui.view">
+        <field name="name">bcplanningline.kanban</field>
+        <field name="model">bcplanningline</field>
+        <field name="arch" type="xml">
+            <kanban>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_card">
+                            <field name="planning_line_no"/>
+                            <div><strong><field name="planning_line_desc"/></strong></div>
+                            <div>Task: <field name="task_id"/></div>
+                            <div>Project: <field name="job_id"/></div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
     <!-- List View for external user vs vendor -->
     <record id="view_externaluser_list" model="ir.ui.view">
         <field name="name">bcexternaluser.list</field>
@@ -127,17 +187,17 @@
     <record id="action_bcproject" model="ir.actions.act_window">
         <field name="name">Projects</field>
         <field name="res_model">bcproject</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">kanban,list,form</field>
     </record>
     <record id="action_bctask" model="ir.actions.act_window">
         <field name="name">Tasks</field>
         <field name="res_model">bctask</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">kanban,list,form</field>
     </record>
     <record id="action_bcplanningline" model="ir.actions.act_window">
         <field name="name">Planning Lines</field>
         <field name="res_model">bcplanningline</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">kanban,list,form</field>
     </record>
     <record id="action_bcexternaluser" model="ir.actions.act_window">
         <field name="name">External User vs Vendor</field>
