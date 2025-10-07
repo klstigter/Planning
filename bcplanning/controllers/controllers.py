@@ -111,14 +111,38 @@ class PlanningApiController(http.Controller):
         # Build task data
         task_data = []
         for t in tasks:
+            # Attach Planning Lines
+            pl_data = []
+            for pl in t.planning_line:
+                pl_data.append({
+                    'id': pl.id,
+                    'pl_no': pl.planning_line_no,
+                    'pl_desc': pl.planning_line_desc,
+                    'pl_resource_id': pl.resource_id.id,
+                })
+
+            # Task
             task_data.append({
                 'id': t.id,
                 'task_no': t.task_no,
-                'task_desc': t.task_desc,                
-            })
+                'task_desc': t.task_desc,   
+                'planningline_count': len(t.planning_line), 
+                'planninglines': pl_data
+            })            
+
+        # Resources
+        resource_data = []
+        res = request.env['res.partner'].sudo().search([('id','=',vendor.vendor_id.id)])
+        if res.child_ids:
+            for contact in res.child_ids:
+                resource_data.append({
+                    'id': contact.id,
+                    'name': contact.name,
+                })
 
         datas = {
             'tasks': task_data,
+            'resources': resource_data,
             'job_id': job_id,
             'job_no': job_no,
             'job_desc': job_name,

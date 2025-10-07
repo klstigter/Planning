@@ -2,36 +2,71 @@
 <odoo>
     <template id="web_partner_task_template">
         <t t-call="website.layout">
-            <div class="container">
-                <h3>Partner Task List</h3>
-                <p>
-                    Partner: <span t-esc="partner_name"/>
-                    <br/>Project No.: <span t-esc="job_no"/>
-                    <br/>Project Name: <span t-esc="job_name"/>
-                </p>
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Task No.</th>
-                            <th>Task Description</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <t t-if="tasks">
-                            <t t-foreach="tasks" t-as="task">
+            <div id="task_wrap" class="oe_structure oe_empty">
+                <div class="container">
+                    <h3>Partner Task List</h3>
+                    <p>
+                        Partner: <span t-esc="partner_name"/>
+                        <br/>Project No.: <span t-esc="job_no"/>
+                        <br/>Project Name: <span t-esc="job_name"/>
+                    </p>
+                    <table class="table table-bordered">
+                        <colgroup>
+                            <col style="width: 30%"/>
+                            <col style="width: 70%"/>
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                <th>Task</th>
+                                <th>Planning Lines</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-if="tasks">
+                                <t t-foreach="tasks" t-as="task">
+                                    <tr>
+                                        <td>
+                                            No.: <span t-esc="task['task_no']"/>
+                                            <br/>Desc: <span t-esc="task['task_desc']"/>
+                                            <br/>Planning Line count: <span t-esc="task['planningline_count']"/>
+                                        </td>
+                                        <td>
+                                            <t t-if="task['planninglines']">
+                                                <table>
+                                                    <t t-foreach="task['planninglines']" t-as="pl">
+                                                        <tr>
+                                                            <td>
+                                                                <!-- <span t-esc="pl['pl_desc']"/> -->
+                                                                <select class="resource-select">
+                                                                    <option value=""> - </option>
+                                                                    <t t-foreach="resources" t-as="resource">
+                                                                        <option t-att-value="resource['id']"
+                                                                                t-att-selected="resource['id'] == pl['pl_resource_id'] and 'selected' or False">
+                                                                            <t t-esc="resource['name']"/>
+                                                                        </option>
+                                                                    </t>
+                                                                </select>
+                                                            </td>
+                                                            <td style="padding-left: 32px;">
+                                                                <button type="button" class="btn btn-sm btn-secondary remove-resource-row">Remove</button>
+                                                            </td>                                                            
+                                                        </tr>
+                                                    </t>
+                                                </table>
+                                                <br/><button type="button" class="btn btn-sm btn-primary add-resource-row">Add Resource</button>
+                                            </t>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </t>
+                            <t t-if="not tasks">
                                 <tr>
-                                    <td><span t-esc="task['task_no']"/></td>
-                                    <td><span t-esc="task['task_desc']"/></td>
+                                    <td colspan="2">No tasks found.</td>
                                 </tr>
                             </t>
-                        </t>
-                        <t t-if="not tasks">
-                            <tr>
-                                <td colspan="2">No tasks found.</td>
-                            </tr>
-                        </t>
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </t>
     </template>
