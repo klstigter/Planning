@@ -124,12 +124,40 @@
                     </group>
                     <notebook>
                         <page string="Planning Lines">
-                            <field name="planning_line">
+                            <field name="planning_line" mode="list,kanban">
                                 <list create="false" edit="false" delete="false">
                                     <field name="planning_line_no"/>
                                     <field name="planning_line_desc"/>
                                     <field name="job_id"/>
                                 </list>
+                                <kanban class="o_kanban_mobile">
+                                    <templates>
+                                        <t t-name="card">
+                                            <div class="ps-0 pe-0">
+                                                <div class="row g-0">
+                                                    <div class="col-2 pe-3">
+                                                        <field name="job_id" widget="image" options="{'preview_image': 'image_128'}" class="w-100"/>
+                                                    </div>
+                                                    <div class="col-10">
+                                                        <div class="row">
+                                                            <div class="col">
+                                                                <span class="fw-bold"><field name="planning_line_no"/></span>
+                                                                <span class="text-muted">(<field name="task_id"/>)</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="text-muted small">
+                                                            <field name="planning_line_desc"/>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </t>
+                                    </templates>
+                                    <field name="job_id"/>
+                                    <field name="planning_line_no"/>
+                                    <field name="planning_line_desc"/>
+                                    <field name="task_id"/>
+                                </kanban>
                             </field>
                         </page>
                     </notebook>
