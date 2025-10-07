@@ -34,15 +34,26 @@
                                             <t t-if="task['planninglines']">
                                                 <table>
                                                     <t t-foreach="task['planninglines']" t-as="pl">
-                                                        <tr><td><span t-esc="pl['pl_desc']"/></td></tr>
-                                                        <tr><td>
-                                                            <table>
-                                                                <tr><td style="padding-left: 16px;">add resource here</td></tr>
-                                                                <tr><td style="padding-left: 16px;">add resource here</td></tr>
-                                                            </table>
-                                                        </td></tr>
+                                                        <tr>
+                                                            <td>
+                                                                <!-- <span t-esc="pl['pl_desc']"/> -->
+                                                                <select class="resource-select">
+                                                                    <option value=""> - </option>
+                                                                    <t t-foreach="resources" t-as="resource">
+                                                                        <option t-att-value="resource['id']"
+                                                                                t-att-selected="resource['id'] == pl['pl_resource_id'] and 'selected' or False">
+                                                                            <t t-esc="resource['name']"/>
+                                                                        </option>
+                                                                    </t>
+                                                                </select>
+                                                            </td>
+                                                            <td style="padding-left: 32px;">
+                                                                <button type="button" class="btn btn-sm btn-secondary remove-resource-row">Remove</button>
+                                                            </td>                                                            
+                                                        </tr>
                                                     </t>
                                                 </table>
+                                                <br/><button type="button" class="btn btn-sm btn-primary add-resource-row">Add Resource</button>
                                             </t>
                                         </td>
                                     </tr>

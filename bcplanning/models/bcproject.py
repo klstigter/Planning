@@ -94,7 +94,6 @@ class bcplanning_task(models.Model):
         inverse_name='task_id',
         string="Planning Lines",
         copy=True, bypass_search_access=True)
-
     
     @api.constrains('task_no', 'job_id')
     def _check_job_no_unique(self):
@@ -124,6 +123,7 @@ class bcplanning_line(models.Model):
         comodel_name='bcproject',
         string="Project Reference",
         compute="_get_job_id", store=True)
+    resource_id = fields.Many2one('res.partner', string='Partner', domain="[]")
 
     @api.depends('task_id')
     def _get_job_id(self):
