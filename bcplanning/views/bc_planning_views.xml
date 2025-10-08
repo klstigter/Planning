@@ -4,7 +4,7 @@
         <field name="name">bcproject.list</field>
         <field name="model">bcproject</field>
         <field name="arch" type="xml">
-            <list create="false" edit="false" delete="false">
+            <list>
                 <field name="job_no"/>
                 <field name="job_desc"/>
                 <field name="partner_id"/>
@@ -29,10 +29,11 @@
                     <notebook>
                         <page string="Tasks">
                             <field name="task_line" mode="list,kanban">
-                                <list create="false" edit="false" delete="false">
+                                <list>
                                     <field name="task_no"/>
                                     <field name="task_desc"/>
                                     <field name="planning_line" widget="one2many_list"/>
+                                    <field name="supervisor_id"/>
                                 </list>
                                 <!-- -->
                                 <kanban class="o_kanban_mobile">
@@ -41,7 +42,7 @@
                                             <div class="ps-0 pe-0">
                                                 <div class="row g-0">
                                                     <div class="col-2 pe-3">
-                                                        <field name="job_id" widget="image" options="{'preview_image': 'image_128'}" class="w-100"/>
+                                                        <field name="supervisor_id" widget="image" options="{'preview_image': 'image_128'}" class="w-100"/>
                                                     </div>
                                                     <div class="col-10">
                                                         <div class="row">
@@ -111,10 +112,11 @@
         <field name="name">bctask.list</field>
         <field name="model">bctask</field>
         <field name="arch" type="xml">
-            <list create="false" edit="false" delete="false">
+            <list>
                 <field name="task_no"/>
                 <field name="task_desc"/>
                 <field name="job_id"/>
+                <field name="supervisor_id"/>
             </list>
         </field>
     </record>
@@ -129,15 +131,18 @@
                     <group>
                         <field name="task_no"/>
                         <field name="task_desc"/>
+                        <field name="supervisor_id"/>
                         <field name="job_id"/>
                     </group>
                     <notebook>
                         <page string="Planning Lines">
                             <field name="planning_line" mode="list,kanban">
-                                <list create="false" edit="false" delete="false">
+                                <list>
                                     <field name="planning_line_no"/>
                                     <field name="planning_line_desc"/>
                                     <field name="product_id"/>
+                                    <field name="quantity"/>
+                                    <field name="depth"/>
                                 </list>
                                 <kanban class="o_kanban_mobile">
                                     <templates>
@@ -153,9 +158,13 @@
                                                                 <span class="fw-bold"><field name="planning_line_no"/></span>
                                                             </div>
                                                         </div>
-                                                        <div class="text-muted small">
-                                                            <field name="product_id"/>
-                                                            <field name="planning_line_desc"/>
+                                                        <div>
+                                                            <table>
+                                                                <tr><td><field name="product_id"/></td></tr>
+                                                                <tr><td><field name="planning_line_desc"/></td></tr>
+                                                                <tr><td><field name="quantity"/></td></tr>
+                                                                <tr><td><field name="depth"/></td></tr>
+                                                            </table>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -167,6 +176,8 @@
                                     <field name="planning_line_desc"/>
                                     <field name="task_id"/>
                                     <field name="product_id"/>
+                                    <field name="quantity"/>
+                                    <field name="depth"/>
                                 </kanban>
                             </field>
                         </page>
@@ -185,8 +196,11 @@
                 <templates>
                     <t t-name="card">
                         <div class="oe_kanban_card">
-                            <field name="task_no"/>
-                            <div><strong><field name="task_desc"/></strong></div>
+                            <div class="col-2 pe-3">
+                                <field name="supervisor_id" widget="image" options="{'preview_image': 'image_128'}" class="w-100"/>
+                            </div>
+                            <div><field name="task_no"/></div>                            
+                            <div><strong><field name="task_desc"/></strong></div>                            
                             <div>Project: <field name="job_id"/></div>
                             <div>
                                 <table>
@@ -212,7 +226,7 @@
         <field name="name">bcplanningline.list</field>
         <field name="model">bcplanningline</field>
         <field name="arch" type="xml">
-            <list create="false" edit="false" delete="false">
+            <list>
                 <field name="planning_line_no"/>
                 <field name="planning_line_desc"/>
                 <field name="product_id"/>
@@ -231,7 +245,10 @@
                 <group>
                     <field name="planning_line_no"/>
                     <field name="planning_line_desc"/>
-                    <field name="product_id"/>
+                    <field name="resource_id"/>
+                    <field name="product_id"/> 
+                    <field name="quantity"/>
+                    <field name="depth"/>
                     <field name="job_id"/>
                     <field name="task_id"/>
                 </group>
@@ -250,7 +267,10 @@
                         <div class="oe_kanban_card">
                             <field name="planning_line_no"/>
                             <div><strong><field name="planning_line_desc"/></strong></div>
-                            <field name="product_id"/>
+                            <div><field name="resource_id"/></div>
+                            <div><field name="product_id"/></div>
+                            <div><field name="quantity"/></div>
+                            <div><field name="depth"/></div>
                             <div>Task: <field name="task_id"/></div>
                             <div>Project: <field name="job_id"/></div>
                         </div>

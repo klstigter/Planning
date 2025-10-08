@@ -103,8 +103,9 @@ class bcplanning_task(models.Model):
         copy=True, bypass_search_access=True)
     number_of_lines = fields.Integer(
         string="Planning Lines",
-        compute="_get_numberofplanninglines", store=False)
-    
+        compute="_get_numberofplanninglines", store=False)    
+    supervisor_id = fields.Many2one('res.partner', string='Supervisor', domain="[]")
+
     @api.constrains('task_no', 'job_id')
     def _check_job_no_unique(self):
         for record in self:
@@ -143,6 +144,8 @@ class bcplanning_line(models.Model):
         ondelete='restrict',
         index=True,
     )
+    quantity = fields.Integer(string="Quantity")
+    depth = fields.Float(string="Depth")
 
     @api.depends('task_id')
     def _get_job_id(self):
