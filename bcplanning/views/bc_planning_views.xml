@@ -162,8 +162,9 @@
                                                             <table>
                                                                 <tr><td><field name="product_id"/></td></tr>
                                                                 <tr><td><field name="planning_line_desc"/></td></tr>
-                                                                <tr><td><field name="quantity"/></td></tr>
-                                                                <tr><td><field name="depth"/></td></tr>
+                                                                <tr><td><span>Product: </span><field name="product_id"/></td></tr>
+                                                                <tr><td><span>Quantity: </span><field name="quantity"/></td></tr>
+                                                                <tr><td><span>Depth: </span><field name="depth"/></td></tr>
                                                             </table>
                                                         </div>
                                                     </div>
