@@ -30,9 +30,10 @@
                                             <br/>Desc: <span t-esc="task['task_desc']"/>
                                             <br/>Planning Line count: <span t-esc="task['planningline_count']"/>
                                         </td>
-                                        <td>
-                                            <t t-if="task['planninglines']">
-                                                <table t-att-data-task-id="task['id']">
+                                        <td t-att-data-task-id="task['id']">                                            
+                                            <table>
+                                                <tbody>
+                                                <t t-if="task['planninglines']">
                                                     <t t-foreach="task['planninglines']" t-as="pl">
                                                         <tr>
                                                             <td>
@@ -49,15 +50,16 @@
                                                                     </t>
                                                                 </select>
                                                             </td>
-                                                            <td style="padding-left: 32px;">
+                                                            <td style="padding-left: 32px;" t-att-data-planningline-id="pl['id']">
                                                                 <button type="button" class="btn btn-sm btn-secondary remove-resource-row">Remove</button>
-                                                            </td>                                                            
+                                                            </td>
                                                         </tr>
                                                     </t>
-                                                </table>
-                                                <br/><button type="button" class="btn btn-sm btn-primary add-resource-row">Add Resource</button>
-                                            </t>
-                                        </td>
+                                                </t>
+                                                </tbody>
+                                            </table>                                            
+                                            <br/><button type="button" class="btn btn-sm btn-primary add-resource-row">Add Resource</button>
+                                        </td>                                        
                                     </tr>
                                 </t>
                             </t>
