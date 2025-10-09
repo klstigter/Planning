@@ -78,13 +78,25 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
         const planninglineId = $td.find('.data_planningline_id').text().trim();
         const resourceId = $select.val();
 
+        // Store previous value before change (using data attribute, or closure variable)
+        const previousValue = $select.data('previous-value') || $select.find('option[selected]').val();
+        // console.log(previousValue);
+
         if (!planninglineId) return;
 
         rpc('/bcplanningline/update', {
             planningline_id: planninglineId,
             resource_id: resourceId
         }).then(function(result) {
-            alert((result.result || 'Unknown result'));
+            if (result.result && result.result === 'updated') {
+                alert('Resource updated successfully');
+                // Optionally update previousValue
+                $select.data('previous-value', resourceId);
+            } else {
+                alert(result.result || 'Unknown result');
+                // Restore previous selection
+                $select.val(previousValue);
+            }
         });
     },
 

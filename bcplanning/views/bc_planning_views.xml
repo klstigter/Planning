@@ -7,7 +7,6 @@
             <list>
                 <field name="job_no"/>
                 <field name="job_desc"/>
-                <field name="partner_id"/>
                 <field name="number_of_tasks"/>
             </list>
         </field>
@@ -23,7 +22,6 @@
                     <group>
                         <field name="job_no"/>
                         <field name="job_desc"/>
-                        <field name="partner_id"/>
                         <field name="number_of_tasks"/>
                     </group>
                     <notebook>
@@ -98,7 +96,6 @@
                         <div class="oe_kanban_card">
                             <field name="job_no"/>
                             <div><strong><field name="job_desc"/></strong></div>
-                            <div>Partner: <field name="partner_id"/></div>
                             <div>Tasks: <field name="number_of_tasks"/></div>
                         </div>
                     </t>
@@ -138,6 +135,7 @@
                         <page string="Planning Lines">
                             <field name="planning_line" mode="list,kanban">
                                 <list>
+                                    <field name="planning_line_lineno"/>
                                     <field name="planning_line_no"/>
                                     <field name="planning_line_desc"/>
                                     <field name="product_id"/>
@@ -173,6 +171,7 @@
                                         </t>
                                     </templates>
                                     <field name="resource_id"/>
+                                    <field name="planning_line_lineno"/>
                                     <field name="planning_line_no"/>
                                     <field name="planning_line_desc"/>
                                     <field name="task_id"/>
@@ -228,6 +227,7 @@
         <field name="model">bcplanningline</field>
         <field name="arch" type="xml">
             <list>
+                <field name="planning_line_lineno"/>
                 <field name="planning_line_no"/>
                 <field name="planning_line_desc"/>
                 <field name="product_id"/>
@@ -244,6 +244,7 @@
         <field name="arch" type="xml">
             <form>
                 <group>
+                    <field name="planning_line_lineno"/>
                     <field name="planning_line_no"/>
                     <field name="planning_line_desc"/>
                     <field name="resource_id"/>
@@ -266,7 +267,8 @@
                 <templates>
                     <t t-name="card">
                         <div class="oe_kanban_card">
-                            <field name="planning_line_no"/>
+                            <div><field name="planning_line_lineno"/></div>
+                            <div><field name="planning_line_no"/></div>
                             <div><strong><field name="planning_line_desc"/></strong></div>
                             <div><field name="resource_id"/></div>
                             <div><field name="product_id"/></div>

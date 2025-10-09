@@ -1,0 +1,25 @@
+<odoo>
+  <record id="view_bcplanning_config_settings" model="ir.ui.view">
+    <field name="name">res.config.settings.view.form.inherit.bcplanning</field>
+    <field name="model">res.config.settings</field>
+    <field name="priority" eval="40"/>
+    <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+    <field name="arch" type="xml">
+      <xpath expr="//form" position="inside">
+        <app data-string="BCPlanning" string="BCPlanning" name="bcplanning">
+          <block title="BCPlanning Settings" name="bcplanning_settings_block">
+            <setting string="Client Id" help="Business Central Client Id">
+              <field name="bcplanning_setting_client_id"/>
+            </setting>
+            <setting string="Client Secret" help="Business Central Client Secret">
+              <field name="bcplanning_setting_client_secret"/>
+            </setting>
+            <setting string="Tenant Id" help="Business Central Tenant Id">
+              <field name="bcplanning_setting_tenant_id"/>
+            </setting>
+          </block>
+        </app>
+      </xpath>
+    </field>
+  </record>
+</odoo>

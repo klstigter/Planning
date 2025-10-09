@@ -30,6 +30,7 @@
         'views/website_menu.xml',
         'views/partner_projects.xml',
         'views/partner_tasks.xml',
+        'views/res_config_settings_views.xml',
     ],
     'assets': {
         'web.assets_frontend': [            

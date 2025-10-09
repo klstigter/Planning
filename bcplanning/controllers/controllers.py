@@ -68,21 +68,25 @@ class PlanningApiController(http.Controller):
         res = request.env['res.partner'].sudo().search([('id','=',vendor.vendor_id.id)])
 
         project_data = []
-        projects = request.env['bcproject'].with_user(user.id).search([('partner_id','=',vendor.vendor_id.id)])
-        if projects:
-            for p in projects:                
-                project_data.append({
-                    'id': p.id,
-                    'job_no': p.job_no if p.job_no else '-',
-                    'job_desc': p.job_desc if p.job_desc else '-',
-                    'task_count': len(p.task_line),
-                    'partner_name': res.name if res else '',
-                })
-        datas = {
-            'partner_id': vendor.vendor_id,
-            'partner_name': res.name if res else '',
-            'projects': project_data,
-        }
+        datas = {}
+        planninglines = request.env['bcplanningline'].with_user(user.id).search([('vendor_id','=',vendor.vendor_id.id)])
+        if planninglines:
+            job_ids = planninglines.mapped('job_id.id')
+            projects = request.env['bcproject'].with_user(user.id).search([('id','in',job_ids)])
+            if projects:
+                for p in projects:                
+                    project_data.append({
+                        'id': p.id,
+                        'job_no': p.job_no if p.job_no else '-',
+                        'job_desc': p.job_desc if p.job_desc else '-',
+                        'task_count': len(p.task_line),
+                        'partner_name': res.name if res else '',
+                    })
+            datas = {
+                'partner_id': vendor.vendor_id,
+                'partner_name': res.name if res else '',
+                'projects': project_data,
+            }
         return request.render('bcplanning.web_partner_project_template',datas)
 
     @http.route('/partner/tasks', type='http', auth='user', website=True)
@@ -100,7 +104,7 @@ class PlanningApiController(http.Controller):
         partner_id = vendor.vendor_id.id
 
         # Get projects for vendor
-        project = request.env['bcproject'].with_user(user.id).search([('id', '=', job_id),('partner_id', '=', partner_id)])
+        project = request.env['bcproject'].with_user(user.id).search([('id', '=', job_id)])
         if not project:
             raise ValidationError(f"Project {job_no} for user {user.name} is not found!")
 
@@ -112,22 +116,24 @@ class PlanningApiController(http.Controller):
         for t in tasks:
             # Attach Planning Lines
             pl_data = []
-            for pl in t.planning_line:
-                pl_data.append({
-                    'id': pl.id,
-                    'pl_no': pl.planning_line_no,
-                    'pl_desc': pl.planning_line_desc,
-                    'pl_resource_id': pl.resource_id.id,
-                })
+            planninglines = t.planning_line.search([('task_id', '=' , t.id),('vendor_id', '=' , partner_id)])
+            if planninglines:
+                for pl in planninglines:
+                    pl_data.append({
+                        'id': pl.id,
+                        'pl_no': pl.planning_line_no,
+                        'pl_desc': pl.planning_line_desc,
+                        'pl_resource_id': pl.resource_id.id,
+                    })
 
-            # Task
-            task_data.append({
-                'id': t.id,
-                'task_no': t.task_no,
-                'task_desc': t.task_desc,   
-                'planningline_count': len(t.planning_line), 
-                'planninglines': pl_data
-            })            
+                # Task
+                task_data.append({
+                    'id': t.id,
+                    'task_no': t.task_no,
+                    'task_desc': t.task_desc,   
+                    'planningline_count': len(t.planning_line), 
+                    'planninglines': pl_data
+                })            
 
         # Resources
         resource_data = []
@@ -157,41 +163,65 @@ class PlanningApiController(http.Controller):
     @http.route('/bcplanningline/update', type='jsonrpc', auth='user', methods=['POST'])
     def update_resource(self, planningline_id, resource_id):
         user = request.env.user
+        
+        # Get Vendor from bcexternaluser (adapt this if your vendor relation is different)
+        vendors = request.env['bcexternaluser'].sudo().search([('user_id', '=', user.id)], limit=1)
+        if not vendors:
+            raise ValidationError("User to vendor mapping not found!")
+        vendor = vendors[0]
+        vendor_id = vendor.vendor_id.id
+
         line = request.env['bcplanningline'].with_user(user.id).browse(int(planningline_id))
         if not line.exists():
             return {'result': 'Planning line not found'}
-        if resource_id:
-            line.resource_id = int(resource_id)
+
+        # make request into BC
+        if line[0].updatetobc():
+            if resource_id:
+                line.resource_id = int(resource_id)
+            else:
+                line.resource_id = False
+            return {'result': 'updated'}
         else:
-            line.resource_id = False
-        return {'result': 'updated'}
+            return {'result': 'Update to BC failed'}
 
     @http.route('/bcplanningline/add', type='jsonrpc', auth='user', methods=['POST'])
     def add_planningline(self, task_id):
         user = request.env.user
+
+        # Get Vendor from bcexternaluser (adapt this if your vendor relation is different)
+        vendors = request.env['bcexternaluser'].sudo().search([('user_id', '=', user.id)], limit=1)
+        if not vendors:
+            raise ValidationError("User to vendor mapping not found!")
+        vendor = vendors[0]
+        vendor_id = vendor.vendor_id.id
+
         # Validate task_id
         task = request.env['bctask'].with_user(user.id).browse(int(task_id))
         if not task.exists():
             return {'result': 'Task not found'}
         
         # Generate a unique planning_line_no (can be customized)
-        max_no = request.env['bcplanningline'].with_user(user.id).search_count([('task_id', '=', task.id)])
-        planning_line_no = str(max_no + 1)
+        planning_line_lineno = 10000
+        last_pl = request.env['bcplanningline'].sudo().search(
+                    [('task_id', '=', task.id)],
+                    order='planning_line_lineno desc',
+                    limit=1
+                )
+        if last_pl:
+            planning_line_lineno = str(last_pl.planning_line_lineno + 10000)
         
         # Create the new planning line
-        planning_line = request.env['bcplanningline'].with_user(user.id).create({
-            'planning_line_no': planning_line_no,
+        planning_line = request.env['bcplanningline'].sudo().create({
+            'planning_line_lineno': planning_line_lineno,
+            'vendor_id': vendor_id,
             'planning_line_desc': 'New Planning Line',
             'task_id': task.id,
         })
 
         # Get Vendor from bcexternaluser (adapt this if your vendor relation is different)
-        resource_options = ""
-        vendors = request.env['bcexternaluser'].sudo().search([('user_id', '=', user.id)], limit=1)
-        if not vendors:
-            return {'result': 'User to vendor mapping not found!'}
-        vendor = vendors[0]
-        res = request.env['res.partner'].sudo().search([('id','=',vendor.vendor_id.id)])
+        resource_options = ""        
+        res = request.env['res.partner'].sudo().search([('id','=',vendor_id)])
         if res.child_ids:
             for contact in res.child_ids:
                 resource_options += f'<option value="{contact.id}">{contact.name}</option>'
