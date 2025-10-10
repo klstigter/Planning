@@ -57,6 +57,8 @@ class bcplanning_project(models.Model):
         for task_data in tasks:
             task_no = task_data.get('bc_task_no')
             task_desc = task_data.get('bc_task_desc')
+            task_planning_id = task_data.get('planning_user_id')
+            
             planninglines = task_data.get('bc_planninglines', [])
 
             bctask = self.env['bctask'].search([('task_no','=',task_no), ('job_id','=',Job_id)], limit=1)
@@ -66,6 +68,7 @@ class bcplanning_project(models.Model):
                 bctask = self.env['bctask'].create({
                     'task_no': task_no,
                     'task_desc': task_desc,
+                    'supervisor_id': task_planning_id,
                     'job_id': Job_id,
                 })
 
