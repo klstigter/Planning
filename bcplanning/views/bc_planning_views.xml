@@ -134,7 +134,7 @@
                     <notebook>
                         <page string="Planning Lines">
                             <field name="planning_line" mode="list,kanban">
-                                <list>
+                                <list editable="bottom">
                                     <field name="planning_line_lineno"/>
                                     <field name="planning_line_no"/>
                                     <field name="planning_line_desc"/>
