@@ -175,10 +175,16 @@ class PlanningApiController(http.Controller):
         if not line.exists():
             return {'result': 'Planning line not found'}
 
+        new_resource = self.env['res.partner'].sudo().search([('id','=',int(resource_id))])
+        if new_resource:
+            new_resource = new_resource[0]
+
         # make request into BC
-        if line[0].updatetobc():
+        if line[0].updatetobc(resource_id):
             if resource_id:
                 line.resource_id = int(resource_id)
+                line.planning_line_no = new_resource.name
+                line.planning_line_desc = new_resource.name if new_resource else ''
             else:
                 line.resource_id = False
             return {'result': 'updated'}
