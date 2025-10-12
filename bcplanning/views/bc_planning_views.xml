@@ -31,7 +31,7 @@
                                     <field name="task_no"/>
                                     <field name="task_desc"/>
                                     <field name="planning_line" widget="one2many_list"/>
-                                    <field name="supervisor_id"/>
+                                    <field name="data_owner_id"/>
                                 </list>
                                 <!-- -->
                                 <kanban class="o_kanban_mobile">
@@ -40,7 +40,7 @@
                                             <div class="ps-0 pe-0">
                                                 <div class="row g-0">
                                                     <div class="col-2 pe-3">
-                                                        <field name="supervisor_id" widget="image" options="{'preview_image': 'image_128'}" class="w-100"/>
+                                                        <field name="data_owner_id" widget="image" options="{'preview_image': 'image_128'}" class="w-100"/>
                                                     </div>
                                                     <div class="col-10">
                                                         <div class="row">
@@ -113,7 +113,7 @@
                 <field name="task_no"/>
                 <field name="task_desc"/>
                 <field name="job_id"/>
-                <field name="supervisor_id"/>
+                <field name="data_owner_id"/>
             </list>
         </field>
     </record>
@@ -128,7 +128,7 @@
                     <group>
                         <field name="task_no"/>
                         <field name="task_desc"/>
-                        <field name="supervisor_id"/>
+                        <field name="data_owner_id"/>
                         <field name="job_id"/>
                     </group>
                     <notebook>
@@ -197,7 +197,7 @@
                     <t t-name="card">
                         <div class="oe_kanban_card">
                             <div class="col-2 pe-3">
-                                <field name="supervisor_id" widget="image" options="{'preview_image': 'image_128'}" class="w-100"/>
+                                <field name="data_owner_id" widget="image" options="{'preview_image': 'image_128'}" class="w-100"/>
                             </div>
                             <div><field name="task_no"/></div>                            
                             <div><strong><field name="task_desc"/></strong></div>                            

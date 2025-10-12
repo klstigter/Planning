@@ -1,6 +1,7 @@
 from odoo import models, fields, api
 from odoo.exceptions import ValidationError
 import json
+from odoo.fields import Domain
 
 class bcplanning_project(models.Model):
     _name = 'bcproject'
@@ -64,11 +65,12 @@ class bcplanning_project(models.Model):
             bctask = self.env['bctask'].search([('task_no','=',task_no), ('job_id','=',Job_id)], limit=1)
             if bctask:
                 bctask.task_desc = task_desc                
+                bctask.data_owner_id = task_planning_id 
             else:
                 bctask = self.env['bctask'].create({
                     'task_no': task_no,
                     'task_desc': task_desc,
-                    'supervisor_id': task_planning_id,
+                    'data_owner_id': task_planning_id,
                     'job_id': Job_id,
                 })
 
@@ -142,7 +144,7 @@ class bcplanning_task(models.Model):
     number_of_lines = fields.Integer(
         string="Planning Lines",
         compute="_get_numberofplanninglines", store=False)    
-    supervisor_id = fields.Many2one('res.partner', string='Supervisor', domain="[]")
+    data_owner_id = fields.Many2one('res.users', string='Data Owner', domain="[]")
 
     @api.constrains('task_no', 'job_id')
     def _check_job_no_unique(self):
@@ -159,6 +161,11 @@ class bcplanning_task(models.Model):
     def _get_numberofplanninglines(self):
         for rec in self:
             rec.number_of_lines = len(rec.planning_line)
+
+    @api.model
+    def _search(self, domain, *args, **kwargs):
+        domain = Domain(domain) & Domain('data_owner_id', '=', self.env.user.id)
+        return super()._search(domain, *args, **kwargs)
 
 class bcplanning_line(models.Model):
     _name = 'bcplanningline'
