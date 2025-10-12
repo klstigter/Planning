@@ -8,6 +8,7 @@
                 <field name="job_no"/>
                 <field name="job_desc"/>
                 <field name="number_of_tasks"/>
+                <field name="number_of_tasks_per_user"/>
             </list>
         </field>
     </record>
@@ -23,10 +24,11 @@
                         <field name="job_no"/>
                         <field name="job_desc"/>
                         <field name="number_of_tasks"/>
+                        <field name="number_of_tasks_per_user"/>
                     </group>
                     <notebook>
                         <page string="Tasks">
-                            <field name="task_line" mode="list,kanban">
+                            <field name="task_line_filtered" mode="list,kanban">
                                 <list>
                                     <field name="task_no"/>
                                     <field name="task_desc"/>
@@ -305,6 +307,7 @@
         <field name="name">Tasks</field>
         <field name="res_model">bctask</field>
         <field name="view_mode">list,kanban,form</field>
+        <field name="domain">[('data_owner_id', '=', uid)]</field>
     </record>
     <record id="action_bcplanningline" model="ir.actions.act_window">
         <field name="name">Planning Lines</field>

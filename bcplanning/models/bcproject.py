@@ -15,9 +15,15 @@ class bcplanning_project(models.Model):
         inverse_name='job_id',
         string="Task Lines",
         copy=True, bypass_search_access=True)
+    task_line_filtered = fields.One2many(
+        'bctask', 'job_id', string='My Task Lines', compute='_compute_task_line_filtered'
+    )
     number_of_tasks = fields.Integer(
         string="Number of Tasks",
         compute="_get_numberoftasks", store=False)
+    number_of_tasks_per_user = fields.Integer(
+        string="Number of Tasks (User Owner)",
+        compute="_get_numberoftasks_user", store=False)
 
     @api.constrains('job_no')
     def _check_job_no_unique(self):
@@ -30,9 +36,19 @@ class bcplanning_project(models.Model):
             if existing:
                 raise ValidationError('Job No must be unique!')
 
+    @api.depends('task_line')
+    def _compute_task_line_filtered(self):
+        current_user_id = self.env.uid
+        for record in self:
+            record.task_line_filtered = record.task_line.filtered(lambda t: t.data_owner_id.id == current_user_id)
+            
     def _get_numberoftasks(self):
         for rec in self:
             rec.number_of_tasks = len(rec.task_line)
+
+    def _get_numberoftasks_user(self):
+        for rec in self:
+            rec.number_of_tasks_per_user = len(rec.task_line_filtered)
 
     def projectcreationfrombc(self, posted_data):
         if isinstance(posted_data, str):
@@ -42,18 +58,15 @@ class bcplanning_project(models.Model):
 
         tasks = posted_data.get('tasks', [])
 
-        Job_id = False
         job_rec = self.env['bcproject'].search([('job_no','=',job_no)], limit=1)
         if job_rec:
             job_rec.job_desc = job_desc
-            Job_id = job_rec.id
         else:    
             # Create the job_rec record
             job_rec = self.env['bcproject'].create({
                 'job_no': job_no,
                 'job_desc': job_desc,
             })
-            Job_id = job_rec.id
 
         for task_data in tasks:
             task_no = task_data.get('bc_task_no')
@@ -62,16 +75,19 @@ class bcplanning_project(models.Model):
             
             planninglines = task_data.get('bc_planninglines', [])
 
-            bctask = self.env['bctask'].search([('task_no','=',task_no), ('job_id','=',Job_id)], limit=1)
-            if bctask:
-                bctask.task_desc = task_desc                
-                bctask.data_owner_id = task_planning_id 
+            task = self.env['bctask'].sudo().search([('task_no','=',task_no), ('job_id','=',job_rec.id)], limit=1) 
+            # apply sudo due to Odoo ORM respects record rules and access rights. 
+            # If your current user doesn't have permission to read the record, 
+            # search() will return an empty recordset even if it exists in the database.
+            if task:
+                task.task_desc = task_desc                
+                task.data_owner_id = task_planning_id 
             else:
-                bctask = self.env['bctask'].create({
+                task = self.env['bctask'].create({
                     'task_no': task_no,
+                    'job_id': job_rec.id,
                     'task_desc': task_desc,
-                    'data_owner_id': task_planning_id,
-                    'job_id': Job_id,
+                    'data_owner_id': task_planning_id,                    
                 })
 
             for pl_data in planninglines:
@@ -101,7 +117,7 @@ class bcplanning_project(models.Model):
                     if not res_partner:
                         raise ValidationError(f'Resource not found for partner id {resource_id}')
 
-                planningline_rec = self.env['bcplanningline'].search([('planning_line_lineno','=',planning_line_lineno), ('task_id','=',bctask.id)], limit=1)
+                planningline_rec = self.env['bcplanningline'].search([('planning_line_lineno','=',planning_line_lineno), ('task_id','=',task.id)], limit=1)
                 if planningline_rec:
                     planningline_rec.planning_line_no = planning_line_no
                     planningline_rec.planning_line_desc= planning_line_desc
@@ -114,11 +130,11 @@ class bcplanning_project(models.Model):
                         'planning_line_desc': planning_line_desc,
                         'resource_id': resource_id,
                         'vendor_id': planningline_vendorid if planningline_vendorid else False,
-                        'task_id': bctask.id,
+                        'task_id': task.id,
                     })
 
         return {
-            'job_id': Job_id,
+            'job_id': job_rec.id,
             'job_no': job_rec.job_no,
             'created_tasks': len(tasks),
         }
@@ -135,7 +151,7 @@ class bcplanning_task(models.Model):
     job_id = fields.Many2one(
         comodel_name='bcproject',
         string="Project Reference",
-        required=True, ondelete='cascade', index=True, copy=False)
+        required=True, ondelete='cascade', index=True)
     planning_line = fields.One2many(
         comodel_name='bcplanningline',
         inverse_name='task_id',
@@ -162,10 +178,10 @@ class bcplanning_task(models.Model):
         for rec in self:
             rec.number_of_lines = len(rec.planning_line)
 
-    @api.model
-    def _search(self, domain, *args, **kwargs):
-        domain = Domain(domain) & Domain('data_owner_id', '=', self.env.user.id)
-        return super()._search(domain, *args, **kwargs)
+    # @api.model
+    # def _search(self, domain, *args, **kwargs):
+    #     domain = Domain(domain) & Domain('data_owner_id', '=', self.env.user.id)
+    #     return super()._search(domain, *args, **kwargs)
 
 class bcplanning_line(models.Model):
     _name = 'bcplanningline'
