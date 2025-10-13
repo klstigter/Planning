@@ -40,6 +40,23 @@ class PlanningApiController(http.Controller):
                 })
         return Response(json.dumps(vendor_recs),content_type='application/json;charset=utf-8',status=200)
 
+    @http.route('/planning/contacts', type='http', auth='api_key', methods=['GET'], csrf=False)
+    def getpartners(self):
+        contact_recs = []
+        contacts = request.env['bcexternaluser'].search([])
+        if contacts:
+            contacts = contacts.mapped('vendor_id')
+        if contacts:
+            for ven in contacts:
+                contact_recs.append({
+                    'vendor_id': ven.id,
+                    'vendor_name': ven.name,
+                    'contact_id': xxx,
+                    'contact_name': xxx,
+                })
+        return Response(json.dumps(contact_recs),content_type='application/json;charset=utf-8',status=200)
+
+
     @http.route('/planning/projectcreationfrombc', type='http', auth='api_key', methods=['POST'], csrf=False)
     def projectcreationfrombc(self, **kwargs):
         try:
@@ -47,6 +64,8 @@ class PlanningApiController(http.Controller):
         except Exception as e:
             # print("Error parsing JSON payload:", e)
             posted_data = {}    
+            raise ValidationError(f'submitted data is invalid: {str(request.httprequest.data.decode('utf-8'))}')
+
         result = request.env['bcproject'].projectcreationfrombc(posted_data)    
         # Return as JSON
         response = json.dumps({'status': 'success', 'received': result})

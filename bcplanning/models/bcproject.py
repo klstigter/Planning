@@ -98,6 +98,7 @@ class bcplanning_project(models.Model):
                 planningline_vendorid = pl_data.get('bc_jobplanningline_vendorid')
 
                 # Check partner ID
+                res_partner = False
                 if planningline_vendorid:                    
                     res_partner = self.env['res.partner'].sudo().search([('id', '=', planningline_vendorid)])
                     if not res_partner:
@@ -116,6 +117,9 @@ class bcplanning_project(models.Model):
                     res_partner = self.env['res.partner'].sudo().search([('id', '=', resource_id)])
                     if not res_partner:
                         raise ValidationError(f'Resource not found for partner id {resource_id}')
+                        # to avoid above error:
+                        # in BC the Resource card should be link with Odoo Contact. BC Field = Planning Resource Id
+                        # but how to do that in BC? at the moment it no intarface in BC to link BC Resource with Odoo Contact.
 
                 planningline_rec = self.env['bcplanningline'].search([('planning_line_lineno','=',planning_line_lineno), ('task_id','=',task.id)], limit=1)
                 if planningline_rec:
