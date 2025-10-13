@@ -40,21 +40,21 @@ class PlanningApiController(http.Controller):
                 })
         return Response(json.dumps(vendor_recs),content_type='application/json;charset=utf-8',status=200)
 
-    @http.route('/planning/contacts', type='http', auth='api_key', methods=['GET'], csrf=False)
-    def getpartners(self):
-        contact_recs = []
-        contacts = request.env['bcexternaluser'].search([])
-        if contacts:
-            contacts = contacts.mapped('vendor_id')
-        if contacts:
-            for ven in contacts:
-                contact_recs.append({
-                    'vendor_id': ven.id,
-                    'vendor_name': ven.name,
-                    'contact_id': xxx,
-                    'contact_name': xxx,
-                })
-        return Response(json.dumps(contact_recs),content_type='application/json;charset=utf-8',status=200)
+    # @http.route('/planning/contacts', type='http', auth='api_key', methods=['GET'], csrf=False)
+    # def getpartners(self):
+    #     contact_recs = []
+    #     contacts = request.env['bcexternaluser'].search([])
+    #     if contacts:
+    #         contacts = contacts.mapped('vendor_id')
+    #     if contacts:
+    #         for ven in contacts:
+    #             contact_recs.append({
+    #                 'vendor_id': ven.id,
+    #                 'vendor_name': ven.name,
+    #                 'contact_id': xxx,
+    #                 'contact_name': xxx,
+    #             })
+    #     return Response(json.dumps(contact_recs),content_type='application/json;charset=utf-8',status=200)
 
 
     @http.route('/planning/projectcreationfrombc', type='http', auth='api_key', methods=['POST'], csrf=False)
