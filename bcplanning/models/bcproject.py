@@ -108,7 +108,7 @@ class bcplanning_project(models.Model):
                 # if Text then no contact (resource_id false)
                 resource_id = False
                 planning_line_type = pl_data.get('bc_jobplanningline_type')
-                if planning_line_type == 'Source':
+                if planning_line_type == 'Resource':
                     resource_id = planningline_resid
 
                 # Check resource id
