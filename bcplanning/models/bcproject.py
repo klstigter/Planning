@@ -250,7 +250,7 @@ class bcplanning_line(models.Model):
             "no": new_resource.name if new_resource else 'NONE',
             "planning_resource_id": f"{int(new_resource_id) if new_resource_id else 0}",
             "planning_vendor_id": f"{self.vendor_id.id if self.vendor_id else 0}",
-            "description": self.planning_line_desc,
+            "description": new_resource.name if new_resource_id else self.planning_line_desc,
         }
         response = self.env['bcplanning_utils'].post_request(url,payload)
         if response.status_code in (200, 201):
