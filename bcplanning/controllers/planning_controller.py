@@ -41,7 +41,7 @@ class PlanningApiController(http.Controller):
         return Response(json.dumps(vendor_recs),content_type='application/json;charset=utf-8',status=200)
 
     @http.route('/planning/contacts', type='http', auth='api_key', methods=['POST'], csrf=False)
-    def getpartners(self):    
+    def getcontacts(self):    
         """
         Body params:
         {
