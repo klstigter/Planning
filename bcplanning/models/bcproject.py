@@ -241,9 +241,11 @@ class bcplanning_line(models.Model):
                 raise ValidationError(f'Planning Line No must be unique per Task No.!, duplicates on planning_line_lineno = {record.planning_line_lineno}, task No = {record.task_id.task_no}, Job No = {record.job_id.job_no}')
 
     def updatetobc(self, new_resource_id):
-        new_resource = self.env['res.partner'].sudo().search([('id','=',int(new_resource_id))])
-        if new_resource:
-            new_resource = new_resource[0]
+        new_resource = []
+        if new_resource_id:
+            new_resource = self.env['res.partner'].sudo().search([('id','=',int(new_resource_id))])
+            if new_resource:
+                new_resource = new_resource[0]
         rtv = False
         url = 'https://api.businesscentral.dynamics.com/v2.0/NL_Copy20240710/api/ddsia/planning/v1.0/companies(5cd9e171-71ab-ee11-a56d-6045bde98add)/jobPlanningLines'
         payload = {
@@ -251,7 +253,7 @@ class bcplanning_line(models.Model):
             "jobTaskNo": self.task_id.task_no,
             "lineNo": f"{self.planning_line_lineno}",
             "type": "Resource" if new_resource_id else "Text",
-            "no": new_resource.name if new_resource else 'NONE',
+            "no": new_resource.name if new_resource else 'VACANT',
             "planning_resource_id": f"{int(new_resource_id) if new_resource_id else 0}",
             "planning_vendor_id": f"{self.vendor_id.id if self.vendor_id else 0}",
             "description": new_resource.name if new_resource_id else self.planning_line_desc,

@@ -31,11 +31,13 @@
         'views/partner_projects.xml',
         'views/partner_tasks.xml',
         'views/res_config_settings_views.xml',
+        'views/partner_resource.xml',
     ],
     'assets': {
         'web.assets_frontend': [            
             '/bcplanning/static/src/js/partner_project.js',
             '/bcplanning/static/src/js/partner_task.js',
+            '/bcplanning/static/src/js/resources.js',
         ],
     },
     # only loaded in demonstration mode

@@ -6,4 +6,11 @@
        <field name="parent_id" ref="website.main_menu"/>
        <field name="sequence" type="int">1</field>
    </record>
+
+   <record id="bcplanning_resource_website_menu" model="website.menu">
+       <field name="name">Resources</field>
+       <field name="url">/partner/resources</field>
+       <field name="parent_id" ref="website.main_menu"/>
+       <field name="sequence" type="int">2</field>
+   </record>
 </odoo>
