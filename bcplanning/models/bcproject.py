@@ -131,8 +131,8 @@ class bcplanning_project(models.Model):
                     planningline_rec.planning_line_desc= planning_line_desc
                     planningline_rec.resource_id = resource_id
                     planningline_rec.vendor_id = planningline_vendorid if planningline_vendorid else False
-                    planningline_rec.start_datetime = datetime.strptime(planningline_datetimestart, '%Y-%m-%dT%H:%M') if planningline_datetimestart else False
-                    planningline_rec.end_datetime = datetime.strptime(planningline_datetimeend, '%Y-%m-%dT%H:%M') if planningline_datetimeend else False
+                    planningline_rec.start_datetime = datetime.strptime(planningline_datetimestart, '%Y-%m-%dT%H:%M:%S') if planningline_datetimestart else False
+                    planningline_rec.end_datetime = datetime.strptime(planningline_datetimeend, '%Y-%m-%dT%H:%M:%S') if planningline_datetimeend else False
                 else:
                     self.env['bcplanningline'].create({
                         'planning_line_lineno': planning_line_lineno or 0,
@@ -141,8 +141,8 @@ class bcplanning_project(models.Model):
                         'resource_id': resource_id,
                         'vendor_id': planningline_vendorid if planningline_vendorid else False,
                         'task_id': task.id,
-                        'start_datetime': datetime.strptime(planningline_datetimestart, '%Y-%m-%dT%H:%M') if planningline_datetimestart else False,
-                        'end_datetime': datetime.strptime(planningline_datetimeend, '%Y-%m-%dT%H:%M') if planningline_datetimeend else False,
+                        'start_datetime': datetime.strptime(planningline_datetimestart, '%Y-%m-%dT%H:%M:%S') if planningline_datetimestart else False,
+                        'end_datetime': datetime.strptime(planningline_datetimeend, '%Y-%m-%dT%H:%M:%S') if planningline_datetimeend else False,
                     })
 
         return {
