@@ -17,6 +17,12 @@
             <setting string="Tenant Id" help="Business Central Tenant Id">
               <field name="bcplanning_setting_tenant_id"/>
             </setting>
+            <setting string="Environment Name" help="Business Central Environment Name">
+              <field name="bcplanning_setting_env_name"/>
+            </setting>
+            <setting string="Company Id" help="Business Central Company Id (GUID)">
+              <field name="bcplanning_setting_company_id"/>
+            </setting>
           </block>
         </app>
       </xpath>

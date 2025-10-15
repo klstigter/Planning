@@ -323,6 +323,12 @@ class bcplanning_line(models.Model):
             "endDateTime": end_datetime if end_datetime else (self.end_datetime and self.end_datetime.strftime('%Y-%m-%dT%H:%M')),
             "description": resource.name if resource else self.planning_line_desc,
         }
-        url = 'https://api.businesscentral.dynamics.com/v2.0/NL_Copy20240710/api/ddsia/planning/v1.0/companies(5cd9e171-71ab-ee11-a56d-6045bde98add)/jobPlanningLines'
+        env_name = self.env['ir.config_parameter'].sudo().get_param('bcplanning.setting.env.name')
+        if not env_name:
+            raise ValidationError("BC Environment name not found!")
+        company_id = self.env['ir.config_parameter'].sudo().get_param('bcplanning.setting.company.id')
+        if not company_id:
+            raise ValidationError("BC Company Id not found!")
+        url = f'https://api.businesscentral.dynamics.com/v2.0/{env_name}/api/ddsia/planning/v1.0/companies({company_id})/jobPlanningLines'
         response = self.env['bcplanning_utils'].post_request(url, payload)
         return response.status_code in (200, 201)

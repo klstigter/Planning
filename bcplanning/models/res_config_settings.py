@@ -15,6 +15,13 @@ class ResConfigSettings(models.TransientModel):
         string="Tenant Id",
         config_parameter='bcplanning.setting.tenant.id'
     )
-
+    bcplanning_setting_env_name = fields.Char(
+        string="BC Environment Name",
+        config_parameter='bcplanning.setting.env.name'
+    )
+    bcplanning_setting_company_id = fields.Char(
+        string="Company Id",
+        config_parameter='bcplanning.setting.company.id'
+    )
 
 
