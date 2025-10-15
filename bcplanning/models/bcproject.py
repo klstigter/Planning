@@ -2,6 +2,7 @@ from odoo import models, fields, api
 from odoo.exceptions import ValidationError
 import json
 from odoo.fields import Domain
+from datetime import datetime
 
 class bcplanning_project(models.Model):
     _name = 'bcproject'
@@ -96,6 +97,9 @@ class bcplanning_project(models.Model):
                 planning_line_desc = pl_data.get('bc_jobplanningline_desc')
                 planningline_resid = pl_data.get('bc_jobplanningline_resid')
                 planningline_vendorid = pl_data.get('bc_jobplanningline_vendorid')
+                planningline_datetimestart = pl_data.get('bc_jobplanningline_datetimestart') # start_datetime
+                planningline_datetimeend = pl_data.get('bc_jobplanningline_datetimeend')   # end_datetime
+
 
                 # Check partner ID
                 res_partner = False
@@ -127,6 +131,8 @@ class bcplanning_project(models.Model):
                     planningline_rec.planning_line_desc= planning_line_desc
                     planningline_rec.resource_id = resource_id
                     planningline_rec.vendor_id = planningline_vendorid if planningline_vendorid else False
+                    planningline_rec.start_datetime = datetime.strptime(planningline_datetimestart, '%Y-%m-%dT%H:%M') if planningline_datetimestart else False
+                    planningline_rec.end_datetime = datetime.strptime(planningline_datetimeend, '%Y-%m-%dT%H:%M') if planningline_datetimeend else False
                 else:
                     self.env['bcplanningline'].create({
                         'planning_line_lineno': planning_line_lineno or 0,
@@ -135,6 +141,8 @@ class bcplanning_project(models.Model):
                         'resource_id': resource_id,
                         'vendor_id': planningline_vendorid if planningline_vendorid else False,
                         'task_id': task.id,
+                        'start_datetime': datetime.strptime(planningline_datetimestart, '%Y-%m-%dT%H:%M') if planningline_datetimestart else False,
+                        'end_datetime': datetime.strptime(planningline_datetimeend, '%Y-%m-%dT%H:%M') if planningline_datetimeend else False,
                     })
 
         return {
@@ -240,35 +248,81 @@ class bcplanning_line(models.Model):
             if existing:
                 raise ValidationError(f'Planning Line No must be unique per Task No.!, duplicates on planning_line_lineno = {record.planning_line_lineno}, task No = {record.task_id.task_no}, Job No = {record.job_id.job_no}')
 
-    def updatetobc(self, new_resource_id):
-        new_resource = []
-        if new_resource_id:
-            new_resource = self.env['res.partner'].sudo().search([('id','=',int(new_resource_id))])
-            if new_resource:
-                new_resource = new_resource[0]
-        rtv = False
-        url = 'https://api.businesscentral.dynamics.com/v2.0/NL_Copy20240710/api/ddsia/planning/v1.0/companies(5cd9e171-71ab-ee11-a56d-6045bde98add)/jobPlanningLines'
+    # def updatetobc(self, new_resource_id):
+    #     new_resource = []
+    #     if new_resource_id:
+    #         new_resource = self.env['res.partner'].sudo().search([('id','=',int(new_resource_id))])
+    #         if new_resource:
+    #             new_resource = new_resource[0]
+    #     rtv = False
+    #     url = 'https://api.businesscentral.dynamics.com/v2.0/NL_Copy20240710/api/ddsia/planning/v1.0/companies(5cd9e171-71ab-ee11-a56d-6045bde98add)/jobPlanningLines'
+    #     payload = {
+    #         "jobNo": self.task_id.job_id.job_no,
+    #         "jobTaskNo": self.task_id.task_no,
+    #         "lineNo": f"{self.planning_line_lineno}",
+    #         "type": "Resource" if new_resource_id else "Text",
+    #         "no": new_resource.name if new_resource else 'VACANT',
+    #         "planning_resource_id": f"{int(new_resource_id) if new_resource_id else 0}",
+    #         "planning_vendor_id": f"{self.vendor_id.id if self.vendor_id else 0}",
+    #         "startDateTime": self.start_datetime.strftime('%Y-%m-%dT%H:%M') if self.start_datetime else '',
+    #         "endDateTime": self.end_datetime.strftime('%Y-%m-%dT%H:%M') if self.end_datetime else '',
+    #         "description": new_resource.name if new_resource_id else self.planning_line_desc,
+    #     }
+    #     response = self.env['bcplanning_utils'].post_request(url,payload)
+    #     if response.status_code in (200, 201):
+    #         print(response)
+    #         rtv = True
+    #     else:
+    #         print(f"POST failed: {response.status_code} {response.text}")
+    #     return rtv
+
+
+    #     # If you want Odoo's logging: _logger.info(response.text)
+    #     # if response.status_code == 201 or response.status_code == 200:
+    #     #     return response.json()
+    #     # else:
+    #     #     raise Exception(f"POST failed: {response.status_code} {response.text}")
+
+    # def updatetobc_datetime(self, start_datetime=None, end_datetime=None):
+    #     rtv = False
+    #     url = 'https://api.businesscentral.dynamics.com/v2.0/NL_Copy20240710/api/ddsia/planning/v1.0/companies(5cd9e171-71ab-ee11-a56d-6045bde98add)/jobPlanningLines'
+    #     # Example D365BC payload -- adjust for your BC API spec!
+    #     payload = {
+    #         "jobNo": self.task_id.job_id.job_no,
+    #         "jobTaskNo": self.task_id.task_no,
+    #         "lineNo": str(self.planning_line_lineno),
+    #         "type": "Resource" if self.resource_id.sudo() else "Text",
+    #         "no": self.resource_id.sudo().name if self.resource_id.sudo() else 'VACANT',
+    #         "planning_resource_id": f"{self.resource_id.sudo().id if self.resource_id.sudo() else 0}",
+    #         "planning_vendor_id": f"{self.vendor_id.sudo().id if self.vendor_id.sudo() else 0}",            
+    #         "startDateTime": start_datetime if start_datetime else (self.start_datetime and self.start_datetime.strftime('%Y-%m-%dT%H:%M')),
+    #         "endDateTime": end_datetime if end_datetime else (self.end_datetime and self.end_datetime.strftime('%Y-%m-%dT%H:%M')),
+    #         "description": self.resource_id.sudo().name if self.resource_id.sudo() else self.planning_line_desc,
+    #     }
+    #     response = self.env['bcplanning_utils'].post_request(url,payload)
+    #     if response.status_code in (200, 201):
+    #         print(response)
+    #         rtv = True
+    #     else:
+    #         print(f"POST failed: {response.status_code} {response.text}")
+    #     return rtv
+
+    def updatetobc_all(self, start_datetime=None, end_datetime=None, resource_id=None):
+        resource = False
+        if resource_id:
+            resource = self.env['res.partner'].sudo().browse(int(resource_id))
         payload = {
             "jobNo": self.task_id.job_id.job_no,
             "jobTaskNo": self.task_id.task_no,
-            "lineNo": f"{self.planning_line_lineno}",
-            "type": "Resource" if new_resource_id else "Text",
-            "no": new_resource.name if new_resource else 'VACANT',
-            "planning_resource_id": f"{int(new_resource_id) if new_resource_id else 0}",
-            "planning_vendor_id": f"{self.vendor_id.id if self.vendor_id else 0}",
-            "description": new_resource.name if new_resource_id else self.planning_line_desc,
+            "lineNo": str(self.planning_line_lineno),
+            "type": "Resource" if resource else "Text",
+            "no": resource.name if resource else 'VACANT',
+            "planning_resource_id": f"{resource.id if resource else 0}",
+            "planning_vendor_id": f"{self.vendor_id.sudo().id if self.vendor_id.sudo() else 0}",
+            "startDateTime": start_datetime if start_datetime else (self.start_datetime and self.start_datetime.strftime('%Y-%m-%dT%H:%M')),
+            "endDateTime": end_datetime if end_datetime else (self.end_datetime and self.end_datetime.strftime('%Y-%m-%dT%H:%M')),
+            "description": resource.name if resource else self.planning_line_desc,
         }
-        response = self.env['bcplanning_utils'].post_request(url,payload)
-        if response.status_code in (200, 201):
-            print(response)
-            rtv = True
-        else:
-            print(f"POST failed: {response.status_code} {response.text}")
-        return rtv
-
-
-        # If you want Odoo's logging: _logger.info(response.text)
-        # if response.status_code == 201 or response.status_code == 200:
-        #     return response.json()
-        # else:
-        #     raise Exception(f"POST failed: {response.status_code} {response.text}")
+        url = 'https://api.businesscentral.dynamics.com/v2.0/NL_Copy20240710/api/ddsia/planning/v1.0/companies(5cd9e171-71ab-ee11-a56d-6045bde98add)/jobPlanningLines'
+        response = self.env['bcplanning_utils'].post_request(url, payload)
+        return response.status_code in (200, 201)

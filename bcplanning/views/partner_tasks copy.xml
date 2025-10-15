@@ -1,0 +1,140 @@
+<odoo>
+    <template id="web_partner_task_template">
+        <t t-call="website.layout">
+            <div id="task_wrap" class="oe_structure">
+                <div class="container py-4">
+                    <!-- Header Card -->
+                    <div class="row mb-4">
+                        <div class="col-md-8 mx-auto">
+                            <div class="card shadow-sm border-0 bg-light">
+                                <div class="card-body">
+                                    <h2 class="card-title mb-2 text-primary fw-bold">
+                                        <i class="fa fa-tasks me-2"></i>Partner Task List
+                                    </h2>
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <span class="text-muted">Partner:</span>
+                                            <span class="fw-semibold ms-1" t-esc="partner_name"/>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <span class="text-muted">Project No.:</span>
+                                            <span class="fw-semibold ms-1" t-esc="job_no"/>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <span class="text-muted">Project Name:</span>
+                                            <span class="fw-semibold ms-1" t-esc="job_name"/>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Main Card for Tasks -->
+                    <div class="row">
+                        <div class="col-md-10 mx-auto">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body">
+                                    <table class="table table-hover align-middle" style="min-width: 900px;">
+                                        <colgroup>
+                                            <col style="width: 28%"/>
+                                            <col style="width: 72%"/>
+                                        </colgroup>
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th class="text-primary fw-bold fs-6">Task</th>
+                                                <th class="text-primary fw-bold fs-6">Planning Lines</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <t t-if="tasks">
+                                                <t t-foreach="tasks" t-as="task">
+                                                    <tr class="border-bottom">
+                                                        <td>
+                                                            <div class="mb-1">
+                                                                <span class="text-muted">No.:</span>
+                                                                <span class="fw-bold ms-1" t-esc="task['task_no']"/>
+                                                            </div>
+                                                            <div class="mb-1">
+                                                                <span class="text-muted">Desc:</span>
+                                                                <span class="ms-1" t-esc="task['task_desc']"/>
+                                                            </div>
+                                                            <div>
+                                                                <span class="badge rounded-pill bg-info">
+                                                                    <i class="fa fa-layer-group me-1"></i>
+                                                                    <span t-esc="task['planningline_count']"/> Planning Lines
+                                                                </span>
+                                                            </div>
+                                                        </td>
+                                                        <td t-att-data-task-id="task['id']">
+                                                            <table class="table table-sm table-borderless mb-0">
+                                                                <thead>
+                                                                    <tr class="bg-light">
+                                                                        <th>Start</th>
+                                                                        <th>End</th>
+                                                                        <th>Resource</th>
+                                                                        <th></th>
+                                                                    </tr>
+                                                                </thead>
+                                                                <tbody>
+                                                                    <t t-if="task['planninglines']">
+                                                                        <t t-foreach="task['planninglines']" t-as="pl">
+                                                                            <tr>
+                                                                                <td>
+                                                                                    <input type="datetime-local" class="start-datetime-input form-control form-control-sm"
+                                                                                        t-att-value="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%dT%H:%M') or ''"
+                                                                                        placeholder="Start datetime"/>
+                                                                                </td>
+                                                                                <td>
+                                                                                    <input type="datetime-local" class="end-datetime-input form-control form-control-sm"
+                                                                                        t-att-value="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%Y-%m-%dT%H:%M') or ''"
+                                                                                        placeholder="End datetime"/>
+                                                                                </td>
+                                                                                <td>
+                                                                                    <span class="data_planningline_id d-none"><t t-esc="pl['id']"/></span>
+                                                                                    <select class="resource-select form-select form-select-sm">
+                                                                                        <option value=""> - </option>
+                                                                                        <t t-foreach="resources" t-as="resource">
+                                                                                            <option t-att-value="resource['id']"
+                                                                                                    t-att-selected="resource['id'] == pl['pl_resource_id'] and 'selected' or False">
+                                                                                                <t t-esc="resource['name']"/>
+                                                                                            </option>
+                                                                                        </t>
+                                                                                    </select>
+                                                                                </td>
+                                                                                <td>
+                                                                                    <!-- <button type="button" class="btn btn-sm btn-outline-danger remove-resource-row" title="Remove">
+                                                                                        <i class="fa fa-trash"></i>
+                                                                                    </button> -->
+                                                                                </td>
+                                                                            </tr>
+                                                                        </t>
+                                                                    </t>
+                                                                </tbody>
+                                                            </table>
+                                                            <!-- <div class="mt-2">
+                                                                <button type="button" class="btn btn-sm btn-outline-primary add-resource-row">
+                                                                    <i class="fa fa-plus me-1"></i> Add Resource
+                                                                </button>
+                                                            </div> -->
+                                                        </td>
+                                                    </tr>
+                                                </t>
+                                            </t>
+                                            <t t-if="not tasks">
+                                                <tr>
+                                                    <td colspan="2" class="text-center text-muted py-4">
+                                                        <i class="fa fa-info-circle me-2"></i>No tasks found.
+                                                    </td>
+                                                </tr>
+                                            </t>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+</odoo>
