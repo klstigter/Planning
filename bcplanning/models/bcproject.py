@@ -332,3 +332,79 @@ class bcplanning_line(models.Model):
         url = f'https://api.businesscentral.dynamics.com/v2.0/{env_name}/api/ddsia/planning/v1.0/companies({company_id})/jobPlanningLines'
         response = self.env['bcplanning_utils'].post_request(url, payload)
         return response.status_code in (200, 201)
+
+    def planninglinefrombc(self, posted_data):
+        if isinstance(posted_data, str):
+            posted_data = json.loads(posted_data)
+        
+        planning_line_jobno = posted_data.get('bc_jobplanningline_jobno')
+        planning_line_taskno = posted_data.get('bc_jobplanningline_taskno')
+        planning_line_lineno = posted_data.get('bc_jobplanningline_lineno')
+        planning_line_type = posted_data.get('bc_jobplanningline_type')
+        planning_line_no = posted_data.get('bc_jobplanningline_no')
+        planning_line_desc = posted_data.get('bc_jobplanningline_desc')
+        planningline_resid = posted_data.get('bc_jobplanningline_resid')
+        planningline_vendorid = posted_data.get('bc_jobplanningline_vendorid')
+        planningline_datetimestart = posted_data.get('bc_jobplanningline_datetimestart')
+        planningline_datetimeend = posted_data.get('bc_jobplanningline_datetimeend')
+
+        # Check partner ID
+        res_partner = False
+        if planningline_vendorid:                    
+            res_partner = self.env['res.partner'].sudo().search([('id', '=', planningline_vendorid)])
+            if not res_partner:
+                raise ValidationError(f'Partner not found for partner id {planningline_vendorid}')
+
+        # Check Job/Project 
+        project = self.env['bcproject'].search([('job_no','=',planning_line_jobno)], limit=1)
+        if not project:
+            raise ValidationError(f'Project not found for job_no {planning_line_jobno}')
+
+        # Check Task
+        task = self.env['bctask'].search([('task_no','=',planning_line_taskno), ('job_id','=', project.id)])
+        if not task:
+            raise ValidationError(f'Task not found for job_no {planning_line_jobno} and task_no {planning_line_taskno}')
+
+        # Manage bc_jobplanningline_type
+        # if Resource then attached to contact (resource_id has a value)
+        # if Text then no contact (resource_id false)
+        resource_id = False        
+        if planning_line_type == 'Resource':
+            resource_id = planningline_resid
+
+        # Check resource id
+        if resource_id:
+            res_partner = self.env['res.partner'].sudo().search([('id', '=', resource_id)])
+            if not res_partner:
+                raise ValidationError(f'Resource not found for partner id {resource_id}')
+                # to avoid above error:
+                # in BC the Resource card should be link with Odoo Contact. BC Field = Planning Resource Id
+                # but how to do that in BC? at the moment it no intarface in BC to link BC Resource with Odoo Contact.
+
+        planningline_rec = self.env['bcplanningline'].search([('planning_line_lineno','=',planning_line_lineno), ('task_id','=',task.id)], limit=1)
+        if planningline_rec:
+            planningline_rec.planning_line_no = planning_line_no
+            planningline_rec.planning_line_desc= planning_line_desc
+            planningline_rec.resource_id = resource_id
+            planningline_rec.vendor_id = planningline_vendorid if planningline_vendorid else False
+            planningline_rec.start_datetime = datetime.strptime(planningline_datetimestart, '%Y-%m-%dT%H:%M:%S') if planningline_datetimestart else False
+            planningline_rec.end_datetime = datetime.strptime(planningline_datetimeend, '%Y-%m-%dT%H:%M:%S') if planningline_datetimeend else False
+        else:
+            planningline_rec = self.env['bcplanningline'].create({
+                'planning_line_lineno': planning_line_lineno or 0,
+                'planning_line_no': planning_line_no or '',  # required field fallback
+                'planning_line_desc': planning_line_desc,
+                'resource_id': resource_id,
+                'vendor_id': planningline_vendorid if planningline_vendorid else False,
+                'task_id': task.id,
+                'start_datetime': datetime.strptime(planningline_datetimestart, '%Y-%m-%dT%H:%M:%S') if planningline_datetimestart else False,
+                'end_datetime': datetime.strptime(planningline_datetimeend, '%Y-%m-%dT%H:%M:%S') if planningline_datetimeend else False,
+            })
+                
+
+        return {
+            'job_no': project.job_no,
+            'task_no': task.task_no,
+            'planning_lineno': planningline_rec.planning_line_lineno,
+            'updated_line': len(planningline_rec),
+        }

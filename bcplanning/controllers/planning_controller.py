@@ -80,14 +80,39 @@ class PlanningApiController(http.Controller):
                         })
         return Response(json.dumps(contact_recs),content_type='application/json;charset=utf-8',status=200)
 
-
-    @http.route('/planning/projectcreationfrombc', type='http', auth='api_key', methods=['POST'], csrf=False)
-    def projectcreationfrombc(self, **kwargs):
+    @http.route('/planning/planninglinefrombc', type='http', auth='api_key', methods=['POST'], csrf=False)
+    def planninglinefrombc(self, **kwargs):
+        """
+        {
+            "bc_jobplanningline_lineno":50000,
+            "bc_jobplanningline_type":"Text",
+            "bc_jobplanningline_no":"VACANT",
+            "bc_jobplanningline_resid":0,
+            "bc_jobplanningline_desc":"Vacant Resource",
+            "bc_jobplanningline_vendorid":13,
+            "bc_jobplanningline_datetimestart":"2025-10-11T07:00:00",
+            "bc_jobplanningline_datetimeend":"2025-10-11T11:00:00"
+        }
+        """
+        posted_data = {}
         try:
             posted_data = json.loads(request.httprequest.data.decode('utf-8'))
         except Exception as e:
-            # print("Error parsing JSON payload:", e)
-            posted_data = {}    
+            # print("Error parsing JSON payload:", e)                
+            raise ValidationError(f"submitted data is invalid: {str(request.httprequest.data.decode('utf-8'))}")
+        result = request.env['bcplanningline'].planninglinefrombc(posted_data)    
+        # Return as JSON
+        response = json.dumps({'status': 'success', 'received': result})
+        return request.make_response(response, headers=[('Content-Type', 'application/json')])
+
+
+    @http.route('/planning/projectcreationfrombc', type='http', auth='api_key', methods=['POST'], csrf=False)
+    def projectcreationfrombc(self, **kwargs):
+        posted_data = {}
+        try:
+            posted_data = json.loads(request.httprequest.data.decode('utf-8'))
+        except Exception as e:
+            # print("Error parsing JSON payload:", e)                
             raise ValidationError(f"submitted data is invalid: {str(request.httprequest.data.decode('utf-8'))}")
 
         result = request.env['bcproject'].projectcreationfrombc(posted_data)    
