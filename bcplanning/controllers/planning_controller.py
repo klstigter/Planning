@@ -135,11 +135,13 @@ class PlanningApiController(http.Controller):
         vendor = vendors[0]
         res = request.env['res.partner'].sudo().search([('id','=',vendor.vendor_id.id)])
 
+        number_of_project = 0
         project_data = []
         datas = {}
         planninglines = request.env['bcplanningline'].with_user(user.id).search([('vendor_id','=',vendor.vendor_id.id)])
         if planninglines:
             job_ids = planninglines.mapped('job_id.id')
+            number_of_project = len(job_ids) if job_ids else 0
             projects = request.env['bcproject'].with_user(user.id).search([('id','in',job_ids)])
             if projects:
                 for p in projects:                
@@ -153,6 +155,7 @@ class PlanningApiController(http.Controller):
             datas = {
                 'partner_id': vendor.vendor_id,
                 'partner_name': res.name if res else '',
+                'number_of_project':  number_of_project,
                 'projects': project_data,
             }
         return request.render('bcplanning.web_partner_project_template',datas)
