@@ -74,8 +74,6 @@ publicWidget.registry.PartnerResources = publicWidget.Widget.extend({
             .replace(/'/g, "&#39;");
     },
 
-    // Open/close modal with support for Bootstrap 5 if available,
-    // otherwise provide fallback including wired-up close buttons/escape key.
     _openModal({ title, resId = "", name = "" }) {
         const $modal = this.$("#resourceModal");
         if (!$modal.length) return;
@@ -90,28 +88,7 @@ publicWidget.registry.PartnerResources = publicWidget.Widget.extend({
         if (hasBootstrap) {
             window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
         } else {
-            // Manual show fallback
             $modal.addClass("show").css("display", "block").attr("aria-hidden", null);
-
-            // Attach click handler to any element that has data-bs-dismiss="modal"
-            // So cancel button and the cross will close modal even without bootstrap js
-            this._modalDismissHandler = (ev) => {
-                const $t = $(ev.target);
-                // if target itself or its ancestor has data-bs-dismiss="modal"
-                if ($t.is('[data-bs-dismiss="modal"]') || $t.closest('[data-bs-dismiss="modal"]').length) {
-                    ev.preventDefault();
-                    this._closeModal();
-                }
-            };
-            modalEl.addEventListener("click", this._modalDismissHandler);
-
-            // Handle ESC key to close modal
-            this._modalKeydownHandler = (ev) => {
-                if (ev.key === "Escape" || ev.key === "Esc") {
-                    this._closeModal();
-                }
-            };
-            document.addEventListener("keydown", this._modalKeydownHandler);
         }
     },
 
@@ -123,18 +100,7 @@ publicWidget.registry.PartnerResources = publicWidget.Widget.extend({
         if (hasBootstrap) {
             window.bootstrap.Modal.getInstance(modalEl)?.hide();
         } else {
-            // Manual hide fallback
             $modal.removeClass("show").css("display", "none").attr("aria-hidden", "true");
-
-            // remove handlers if previously attached
-            if (this._modalDismissHandler) {
-                modalEl.removeEventListener("click", this._modalDismissHandler);
-                this._modalDismissHandler = null;
-            }
-            if (this._modalKeydownHandler) {
-                document.removeEventListener("keydown", this._modalKeydownHandler);
-                this._modalKeydownHandler = null;
-            }
         }
     },
 
