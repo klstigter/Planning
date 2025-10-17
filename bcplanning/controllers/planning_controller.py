@@ -145,13 +145,16 @@ class PlanningApiController(http.Controller):
             projects = request.env['bcproject'].with_user(user.id).search([('id','in',job_ids)])
             if projects:
                 for p in projects:                
-                    project_data.append({
-                        'id': p.id,
-                        'job_no': p.job_no if p.job_no else '-',
-                        'job_desc': p.job_desc if p.job_desc else '-',
-                        'task_count': len(p.task_line),
-                        'partner_name': res.name if res else '',
-                    })
+                    planninglines = request.env['bcplanningline'].with_user(user.id).search([('task_id.job_id.id','=',p.id), ('vendor_id','=',vendor.vendor_id.id)])
+                    if planninglines:
+                        task_ids = planninglines.mapped('task_id.id')
+                        project_data.append({
+                            'id': p.id,
+                            'job_no': p.job_no if p.job_no else '-',
+                            'job_desc': p.job_desc if p.job_desc else '-',
+                            'task_count': len(task_ids),
+                            'partner_name': res.name if res else '',
+                        })
             datas = {
                 'partner_id': vendor.vendor_id,
                 'partner_name': res.name if res else '',
