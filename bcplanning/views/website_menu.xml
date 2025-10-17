@@ -1,16 +1,23 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <odoo>
-   <record id="bcplanning_project_website_menu" model="website.menu">
-       <field name="name">Projects</field>
-       <field name="url">/partner/projects</field>
-       <field name="parent_id" ref="website.main_menu"/>
-       <field name="sequence" type="int">1</field>
-   </record>
+    <record id="bcplanning_project_website_menu" model="website.menu">
+        <field name="name">Projects</field>
+        <field name="url">/partner/projects</field>
+        <field name="parent_id" ref="website.main_menu"/>
+        <field name="sequence" type="int">1</field>
+    </record>
+    
+    <record id="bcplanning_task_website_menu" model="website.menu">
+        <field name="name">Tasks</field>
+        <field name="url">/partner/tasks</field>
+        <field name="parent_id" ref="website.main_menu"/>
+        <field name="sequence" type="int">20</field>
+    </record>
 
    <record id="bcplanning_resource_website_menu" model="website.menu">
        <field name="name">Resources</field>
        <field name="url">/partner/resources</field>
        <field name="parent_id" ref="website.main_menu"/>
-       <field name="sequence" type="int">2</field>
+       <field name="sequence" type="int">30</field>
    </record>
 </odoo>

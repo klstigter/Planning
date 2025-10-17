@@ -180,17 +180,30 @@ class PlanningApiController(http.Controller):
         # Get Vendor from bcexternaluser (adapt this if your vendor relation is different)
         vendors = request.env['bcexternaluser'].sudo().search([('user_id', '=', user.id)], limit=1)
         if not vendors:
-            raise ValidationError("User to vendor mapping not found!")
+            # raise ValidationError("User to vendor mapping not found!")
+            datas = {
+                'message_title': "No vendor mapping",
+                'message_text': "No vendor mapping found for your account. Please contact your administrator.",
+            }
+            return request.render('bcplanning.web_partner_no_records_template', datas)
+
         vendor = vendors[0]
         partner_id = vendor.vendor_id.id
 
         # Get projects for vendor
-        project = request.env['bcproject'].with_user(user.id).search([('id', '=', job_id)])
-        if not project:
-            raise ValidationError(f"Project {job_no} for user {user.name} is not found!")
+        tasks = []
+        if job_id:
+            project = request.env['bcproject'].with_user(user.id).search([('id', '=', job_id)])
+            if not project:
+                raise ValidationError(f"Project {job_no} for user {user.name} is not found!")
 
-        # Get tasks for projects
-        tasks = request.env['bctask'].with_user(user.id).search([('job_id', '=', project.id)])
+            # Get tasks for projects
+            tasks = request.env['bctask'].with_user(user.id).search([('job_id', '=', project.id)])
+        else:
+            planninglines = request.env['bcplanningline'].with_user(user.id).search([('vendor_id','=',partner_id)])
+            if planninglines:
+                task_ids = planninglines.mapped('task_id.id')
+                tasks = request.env['bctask'].with_user(user.id).search([('id', 'in', task_ids)])
 
         # Build task data
         task_data = []
@@ -213,7 +226,8 @@ class PlanningApiController(http.Controller):
                 task_data.append({
                     'id': t.id,
                     'task_no': t.task_no,
-                    'task_desc': t.task_desc,   
+                    'task_desc': t.task_desc,
+                    'job_no': t.job_id.job_no,   
                     'planningline_count': len(t.planning_line), 
                     'planninglines': pl_data
                 })            
