@@ -32,6 +32,7 @@
         'views/partner_tasks.xml',
         'views/res_config_settings_views.xml',
         'views/partner_resource.xml',
+        'views/web_partner_no_records_template.xml',
     ],
     'assets': {
         'web.assets_frontend': [            

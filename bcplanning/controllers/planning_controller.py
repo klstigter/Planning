@@ -131,7 +131,14 @@ class PlanningApiController(http.Controller):
         # Get Vendor
         vendors = request.env['bcexternaluser'].with_user(user.id).search([('user_id','=',user.id)], limit=1)
         if not vendors:
-            raise ValidationError("setting of user vs vendor does not exist!")
+            # raise ValidationError("setting of user vs vendor does not exist!")
+            # No vendor mapping found -> show dedicated "no records" template
+            datas = {
+                'message_title': "No vendor mapping",
+                'message_text': "No vendor mapping found for your account. Please contact your administrator.",
+            }
+            return request.render('bcplanning.web_partner_no_records_template', datas)
+
         vendor = vendors[0]
         res = request.env['res.partner'].sudo().search([('id','=',vendor.vendor_id.id)])
 

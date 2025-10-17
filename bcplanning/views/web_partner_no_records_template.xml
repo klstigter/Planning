@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <template id="web_partner_no_records_template">
+        <t t-call="website.layout">
+            <div class="container my-5">
+                <div class="row justify-content-center">
+                    <div class="col-lg-8">
+                        <div class="card border-0 shadow-sm">
+                            <div class="card-body text-center py-5">
+                                <h2 t-esc="message_title" class="mb-3">No records</h2>
+                                <p class="lead mb-4" t-esc="message_text">No records found</p>
+
+                                <div class="d-flex justify-content-center gap-2">
+                                    <!-- Changed button: go back to My Account instead of Resources/Project -->
+                                    <a t-attf-href="/my/home" class="btn btn-primary">
+                                        My Account
+                                    </a>
+                                    <a t-attf-href="/" class="btn btn-outline-secondary">
+                                        Return to Home
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+</odoo>

@@ -10,7 +10,9 @@ class ResourceApiController(http.Controller):
         user = request.env.user
         mapping = request.env['bcexternaluser'].sudo().search([('user_id', '=', user.id)], limit=1)
         if not mapping or not mapping.vendor_id:
-            raise ValidationError("Setting of user vs vendor does not exist!")
+            #raise ValidationError("Setting of user vs vendor does not exist!")
+            return False
+
         return mapping.vendor_id.sudo()
 
     def _resource_to_dict(self, partner):
@@ -23,6 +25,13 @@ class ResourceApiController(http.Controller):
     def partner_resources(self, **kwargs):
         """Render the website page. Data is reloaded via JSON for CRUD."""
         vendor = self._get_user_vendor()
+        if not vendor:
+            datas = {
+                'message_title': "No vendor mapping",
+                'message_text': "No vendor mapping found for your account. Please contact your administrator.",
+            }
+            return request.render('bcplanning.web_partner_no_records_template', datas)
+
         datas = {
             'partner_id': vendor.id,
             'partner_name': vendor.name or '',
@@ -33,6 +42,13 @@ class ResourceApiController(http.Controller):
     def partner_resources_data(self):
         """Return the list of child resources for the current user's vendor."""
         vendor = self._get_user_vendor()
+        if not vendor:
+            datas = {
+                'message_title': "No vendor mapping",
+                'message_text': "No vendor mapping found for your account. Please contact your administrator.",
+            }
+            return request.render('bcplanning.web_partner_no_records_template', datas)
+
         children = request.env['res.partner'].sudo().search([('parent_id', '=', vendor.id)])
         return {
             'ok': True,
@@ -47,6 +63,13 @@ class ResourceApiController(http.Controller):
         if not name or not name.strip():
             return {'ok': False, 'error': 'Name is required.'}
         vendor = self._get_user_vendor()
+        if not vendor:
+            datas = {
+                'message_title': "No vendor mapping",
+                'message_text': "No vendor mapping found for your account. Please contact your administrator.",
+            }
+            return request.render('bcplanning.web_partner_no_records_template', datas)
+
         vals = {
             'name': name.strip(),
             'parent_id': vendor.id,
@@ -66,6 +89,13 @@ class ResourceApiController(http.Controller):
             return {'ok': False, 'error': 'Name is required.'}
 
         vendor = self._get_user_vendor()
+        if not vendor:
+            datas = {
+                'message_title': "No vendor mapping",
+                'message_text': "No vendor mapping found for your account. Please contact your administrator.",
+            }
+            return request.render('bcplanning.web_partner_no_records_template', datas)
+
         rp = request.env['res.partner'].sudo().browse(int(res_id))
         if not rp.exists():
             return {'ok': False, 'error': 'Resource not found.'}
@@ -82,6 +112,13 @@ class ResourceApiController(http.Controller):
             return {'ok': False, 'error': 'res_id is required.'}
 
         vendor = self._get_user_vendor()
+        if not vendor:
+            datas = {
+                'message_title': "No vendor mapping",
+                'message_text': "No vendor mapping found for your account. Please contact your administrator.",
+            }
+            return request.render('bcplanning.web_partner_no_records_template', datas)
+            
         rp = request.env['res.partner'].sudo().browse(int(res_id))
         if not rp.exists():
             return {'ok': False, 'error': 'Resource not found.'}
