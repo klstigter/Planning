@@ -370,22 +370,36 @@ class PlanningApiController(http.Controller):
         # Update to BC first (pass all fields together)
         start_datetime = f'{start_datetime}:00'
         end_datetime = f'{end_datetime}:00'
-        success = line.updatetobc_all(
-            start_datetime=start_datetime if start_datetime else None,
-            end_datetime=end_datetime if end_datetime else None,
-            resource_id=resource_id
-        )
+
+
+        resource = False
+        if resource_id:
+            resource = self.env['res.partner'].sudo().browse(int(resource_id))
+        payload = {
+            "jobNo": line.task_id.job_id.job_no,
+            "jobTaskNo": line.task_id.task_no,
+            "lineNo": str(line.planning_line_lineno),
+            "type": "Resource" if resource else "Text",
+            "no": resource.name if resource else 'VACANT',
+            "planning_resource_id": f"{resource.id if resource else 0}",
+            "planning_vendor_id": f"{line.vendor_id.sudo().id if line.vendor_id.sudo() else 0}",
+            "startDateTime": start_datetime if start_datetime else (line.start_datetime and line.start_datetime.strftime('%Y-%m-%dT%H:%M')),
+            "endDateTime": end_datetime if end_datetime else (line.end_datetime and line.end_datetime.strftime('%Y-%m-%dT%H:%M')),
+            "description": resource.name if resource else line.planning_line_desc,
+        }
+
+        success = self.env['bcplanning_utils'].updatetobc_all(payload=payload if payload else None)
 
         if success:
-            # # Only update Odoo if BC succeeds
-            # if start_datetime:
-            #     line.start_datetime = new_start
-            # if end_datetime:
-            #     line.end_datetime = new_end
-            # if resource_id:
-            #     line.resource_id = int(resource_id)
-            # elif resource_id == "" or resource_id is None:
-            #     line.resource_id = False
+            # Only update Odoo if BC succeeds
+            if start_datetime:
+                line.start_datetime = new_start
+            if end_datetime:
+                line.end_datetime = new_end
+            if resource_id:
+                line.resource_id = int(resource_id)
+            elif resource_id == "" or resource_id is None:
+                line.resource_id = False
             return {'result': 'updated'}
         else:
             return {

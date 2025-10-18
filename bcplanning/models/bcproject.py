@@ -307,44 +307,6 @@ class bcplanning_line(models.Model):
     #         print(f"POST failed: {response.status_code} {response.text}")
     #     return rtv
 
-    def updatetobc_all(self, start_datetime=None, end_datetime=None, resource_id=None):
-        resource = False
-        if resource_id:
-            resource = self.env['res.partner'].sudo().browse(int(resource_id))
-        payload = {
-            "jobNo": self.task_id.job_id.job_no,
-            "jobTaskNo": self.task_id.task_no,
-            "lineNo": str(self.planning_line_lineno),
-            "type": "Resource" if resource else "Text",
-            "no": resource.name if resource else 'VACANT',
-            "planning_resource_id": f"{resource.id if resource else 0}",
-            "planning_vendor_id": f"{self.vendor_id.sudo().id if self.vendor_id.sudo() else 0}",
-            "startDateTime": start_datetime if start_datetime else (self.start_datetime and self.start_datetime.strftime('%Y-%m-%dT%H:%M')),
-            "endDateTime": end_datetime if end_datetime else (self.end_datetime and self.end_datetime.strftime('%Y-%m-%dT%H:%M')),
-            "description": resource.name if resource else self.planning_line_desc,
-        }
-        env_name = self.env['ir.config_parameter'].sudo().get_param('bcplanning.setting.env.name')
-        if not env_name:
-            raise ValidationError("BC Environment name not found!")
-        company_id = self.env['ir.config_parameter'].sudo().get_param('bcplanning.setting.company.id')
-        if not company_id:
-            raise ValidationError("BC Company Id not found!")
-        url = f'https://api.businesscentral.dynamics.com/v2.0/{env_name}/api/ddsia/planning/v1.0/companies({company_id})/jobPlanningLines'
-        response = self.env['bcplanning_utils'].post_request(url, payload)
-        if response.status_code in (200, 201):
-            # # Only update Odoo if BC succeeds
-            # if start_datetime:
-            #     self.start_datetime = datetime.strptime(start_datetime, '%Y-%m-%dT%H:%M:%S')
-            # if end_datetime:
-            #     self.end_datetime = datetime.strptime(end_datetime, '%Y-%m-%dT%H:%M:%S')
-            # if resource_id:
-            #     self.resource_id = int(resource_id)
-            # elif resource_id == "" or resource_id is None:
-            #     self.resource_id = False
-            return True
-        else:
-            return False
-
     def planninglinefrombc(self, posted_data):
         if isinstance(posted_data, str):
             posted_data = json.loads(posted_data)
