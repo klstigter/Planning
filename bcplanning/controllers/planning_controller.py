@@ -343,7 +343,7 @@ class PlanningApiController(http.Controller):
     @http.route('/bcplanningline/save', type='jsonrpc', auth='user', methods=['POST'])
     def save_planningline(self, planningline_id, start_datetime=None, end_datetime=None, resource_id=None):
         user = request.env.user
-        line = request.env['bcplanningline'].with_user(user.id).browse(int(planningline_id))
+        line = request.env['bcplanningline'].sudo().browse(int(planningline_id))
         if not line.exists():
             return {'result': 'Planning line not found'}
 
@@ -370,7 +370,7 @@ class PlanningApiController(http.Controller):
         # Update to BC first (pass all fields together)
         start_datetime = f'{start_datetime}:00'
         end_datetime = f'{end_datetime}:00'
-        success = line[0].updatetobc_all(
+        success = line.updatetobc_all(
             start_datetime=start_datetime if start_datetime else None,
             end_datetime=end_datetime if end_datetime else None,
             resource_id=resource_id

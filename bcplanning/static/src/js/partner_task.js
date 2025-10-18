@@ -258,7 +258,6 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
             resource_id: resourceId,
         }).then(function(result) {            
             if (result && result.result === 'updated') {
-                alert("cek-01: " + JSON.stringify(result));
                 // success: update view text & hide inputs
                 $contextEl.find('.start-datetime-view').text(startDatetime ? startDatetime.replace('T', ' ') : '');
                 $contextEl.find('.end-datetime-view').text(endDatetime ? endDatetime.replace('T', ' ') : '');
@@ -270,7 +269,6 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
                 $contextEl.find('.save-row, .cancel-row').addClass('d-none');
                 alert('Data updated successfully.');
             } else {
-                alert("cek-2: " + JSON.stringify(result));
                 // Show server-provided message if present
                 const msg = (result && result.result) ? result.result : 'Update failed';
                 alert(msg);

@@ -356,12 +356,12 @@ class bcplanning_line(models.Model):
                 raise ValidationError(f'Partner not found for partner id {planningline_vendorid}')
 
         # Check Job/Project 
-        project = self.env['bcproject'].search([('job_no','=',planning_line_jobno)], limit=1)
+        project = self.env['bcproject'].sudo().search([('job_no','=',planning_line_jobno)], limit=1)
         if not project:
             raise ValidationError(f'Project not found for job_no {planning_line_jobno}')
 
         # Check Task
-        task = self.env['bctask'].search([('task_no','=',planning_line_taskno), ('job_id','=', project.id)])
+        task = self.env['bctask'].sudo().search([('task_no','=',planning_line_taskno), ('job_id','=', project.id)])
         if not task:
             raise ValidationError(f'Task not found for job_no {planning_line_jobno} and task_no {planning_line_taskno}')
 
@@ -381,7 +381,7 @@ class bcplanning_line(models.Model):
                 # in BC the Resource card should be link with Odoo Contact. BC Field = Planning Resource Id
                 # but how to do that in BC? at the moment it no intarface in BC to link BC Resource with Odoo Contact.
 
-        planningline_rec = self.env['bcplanningline'].search([('planning_line_lineno','=',planning_line_lineno), ('task_id','=',task.id)], limit=1)
+        planningline_rec = self.env['bcplanningline'].sudo().search([('planning_line_lineno','=',planning_line_lineno), ('task_id','=',task.id)], limit=1)
         if planningline_rec:
             planningline_rec.planning_line_no = planning_line_no
             planningline_rec.planning_line_desc= planning_line_desc
@@ -390,7 +390,7 @@ class bcplanning_line(models.Model):
             planningline_rec.start_datetime = datetime.strptime(planningline_datetimestart, '%Y-%m-%dT%H:%M:%S') if planningline_datetimestart else False
             planningline_rec.end_datetime = datetime.strptime(planningline_datetimeend, '%Y-%m-%dT%H:%M:%S') if planningline_datetimeend else False
         else:
-            planningline_rec = self.env['bcplanningline'].create({
+            planningline_rec = self.env['bcplanningline'].sudo().create({
                 'planning_line_lineno': planning_line_lineno or 0,
                 'planning_line_no': planning_line_no or '',  # required field fallback
                 'planning_line_desc': planning_line_desc,
