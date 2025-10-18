@@ -173,13 +173,14 @@ class PlanningApiController(http.Controller):
     @http.route('/partner/tasks', type='http', auth='user', website=True)
     def partner_tasks(self, job_id=None, job_no=None, job_name=None, date=None, **kwargs):
         """
-        Added `date` query parameter (YYYY-MM-DD). If not provided, default to today.
-        The controller filters planning lines by start_datetime that fall within the date
-        (00:00:00 — 23:59:59).
+        Behavior:
+        - If ?date=YYYY-MM-DD present -> filter by that date.
+        - Else if ?no_date=1 present -> DO NOT apply date filter (show all).
+        - Else (no date param, no no_date) -> default to today's date filter.
         """
         user = request.env.user
 
-        # Get Vendor from bcexternaluser (adapt this if your vendor relation is different)
+        # Get Vendor from bcexternaluser (adapt if your mapping differs)
         vendors = request.env['bcexternaluser'].sudo().search([('user_id', '=', user.id)], limit=1)
         if not vendors:
             datas = {
@@ -191,67 +192,102 @@ class PlanningApiController(http.Controller):
         vendor = vendors[0]
         partner_id = vendor.vendor_id.id
 
-        # --- parse date param ---
+        # Detect parameters
         date_str = request.params.get('date') or date
-        try:
-            if date_str:
+        no_date_flag = request.params.get('no_date')
+
+        date_filter = False
+        selected_date = None
+
+        if date_str:
+            # explicit date provided in URL
+            try:
                 selected_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-            else:
+                date_filter = True
+            except Exception:
+                # invalid date -> fallback to today's filter
                 selected_date = datetime.now().date()
-        except Exception:
-            # fallback to today if parsing fails
+                date_filter = True
+        elif no_date_flag:
+            # explicit "no date" requested -> show all records
+            date_filter = False
+            selected_date = None
+        else:
+            # no params -> default to today's date filter
             selected_date = datetime.now().date()
+            date_filter = True
 
-        start_dt_str = f"{selected_date.strftime('%Y-%m-%d')} 00:00:00"
-        end_dt_str = f"{selected_date.strftime('%Y-%m-%d')} 23:59:59"
+        if date_filter and selected_date:
+            start_dt_str = f"{selected_date.strftime('%Y-%m-%d')} 00:00:00"
+            end_dt_str = f"{selected_date.strftime('%Y-%m-%d')} 23:59:59"
 
-        # Get projects/tasks for vendor filtered by date on start_datetime
+        # Build domains conditionally
         task_data = []
         number_of_project = 0
         project_data = []
 
-        # If a specific job_id is requested, show tasks for that job only (still filtered by date)
+        # If a specific job_id is requested
         if job_id:
             project = request.env['bcproject'].with_user(user.id).search([('id', '=', int(job_id))], limit=1)
             if not project:
                 raise ValidationError(f"Project {job_no} for user {user.name} is not found!")
 
-            # tasks for the specific project — include only tasks that have planning lines on that date
-            planninglines = request.env['bcplanningline'].with_user(user.id).search([
+            pl_domain = [
                 ('task_id.job_id.id', '=', project.id),
                 ('vendor_id', '=', partner_id),
-                ('start_datetime', '>=', start_dt_str),
-                ('start_datetime', '<=', end_dt_str),
-            ])
+            ]
+            if date_filter:
+                pl_domain += [('start_datetime', '>=', start_dt_str), ('start_datetime', '<=', end_dt_str)]
+
+            planninglines = request.env['bcplanningline'].with_user(user.id).search(pl_domain)
             if planninglines:
                 task_ids = planninglines.mapped('task_id.id')
                 tasks = request.env['bctask'].with_user(user.id).search([('id', 'in', task_ids)])
             else:
                 tasks = request.env['bctask'].with_user(user.id).browse([])
         else:
-            # all planninglines for this vendor and date
-            planninglines = request.env['bcplanningline'].with_user(user.id).search([
-                ('vendor_id', '=', partner_id),
-                ('start_datetime', '>=', start_dt_str),
-                ('start_datetime', '<=', end_dt_str),
-            ])
+            # all planninglines for this vendor (maybe filtered by date)
+            pl_domain = [('vendor_id', '=', partner_id)]
+            if date_filter:
+                pl_domain += [('start_datetime', '>=', start_dt_str), ('start_datetime', '<=', end_dt_str)]
+
+            planninglines = request.env['bcplanningline'].with_user(user.id).search(pl_domain)
             job_ids = planninglines.mapped('job_id.id')
             number_of_project = len(job_ids) if job_ids else 0
-            projects = request.env['bcproject'].with_user(user.id).search([('id', 'in', job_ids)])
-            # tasks are determined per project below
+            projects = request.env['bcproject'].with_user(user.id).search([('id', 'in', job_ids)]) if job_ids else request.env['bcproject'].with_user(user.id).browse([])
+            tasks = request.env['bctask'].with_user(user.id).search([('id', 'in', planninglines.mapped('task_id.id'))]) if planninglines else request.env['bctask'].with_user(user.id).browse([])
 
-            tasks = request.env['bctask'].with_user(user.id).search([('id', 'in', planninglines.mapped('task_id.id'))])
+            # Build project_data (same logic as before)
+            if projects:
+                for p in projects:
+                    pl_for_project_domain = [
+                        ('task_id.job_id.id', '=', p.id),
+                        ('vendor_id', '=', vendor.vendor_id.id),
+                    ]
+                    if date_filter:
+                        pl_for_project_domain += [('start_datetime', '>=', start_dt_str), ('start_datetime', '<=', end_dt_str)]
+                    pl_for_project = request.env['bcplanningline'].with_user(user.id).search(pl_for_project_domain)
+                    if pl_for_project:
+                        task_ids = pl_for_project.mapped('task_id.id')
+                        project_data.append({
+                            'id': p.id,
+                            'job_no': p.job_no or '-',
+                            'job_desc': p.job_desc or '-',
+                            'task_count': len(task_ids),
+                            'partner_name': (request.env['res.partner'].sudo().browse(vendor.vendor_id.id).name if vendor.vendor_id else ''),
+                        })
 
-        # Build task data (only include planning lines that match the date for the partner)
+        # Build task data (include planning lines only if they match date filter when enabled)
         for t in tasks:
-            # Attach Planning Lines for this vendor and selected date
             pl_data = []
-            planninglines = request.env['bcplanningline'].with_user(user.id).search([
+            pl_domain = [
                 ('task_id', '=', t.id),
                 ('vendor_id', '=', partner_id),
-                ('start_datetime', '>=', start_dt_str),
-                ('start_datetime', '<=', end_dt_str),
-            ])
+            ]
+            if date_filter:
+                pl_domain += [('start_datetime', '>=', start_dt_str), ('start_datetime', '<=', end_dt_str)]
+
+            planninglines = request.env['bcplanningline'].with_user(user.id).search(pl_domain)
             if planninglines:
                 for pl in planninglines:
                     pl_data.append({
@@ -263,7 +299,6 @@ class PlanningApiController(http.Controller):
                         'pl_end_datetime': pl.end_datetime,
                     })
 
-                # Task
                 task_data.append({
                     'id': t.id,
                     'task_no': t.task_no,
@@ -290,7 +325,7 @@ class PlanningApiController(http.Controller):
             'job_no': job_no,
             'job_desc': job_name,
             'partner_name': vendor.vendor_id.name if vendor.vendor_id else 'No partner found.',
-            'selected_date': selected_date.strftime('%Y-%m-%d'),
+            'selected_date': selected_date.strftime('%Y-%m-%d') if date_filter and selected_date else '',
         }
         return request.render('bcplanning.web_partner_task_template', datas)
     

@@ -10,8 +10,11 @@
                             <div class="btn-toolbar justify-content-center" role="toolbar" aria-label="Date toolbar">
                                 <div class="btn-group me-2" role="group" aria-label="Prev Today Next">
                                     <button id="btn-prev-day" type="button" class="btn btn-outline-primary btn-sm">&lt;&lt;</button>
-                                    <button id="btn-today" type="button" class="btn btn-outline-secondary btn-sm">Today</button>
+                                    <button id="btn-today" type="button" class="btn btn-outline-secondary btn-sm">Selected Date</button>
                                     <button id="btn-next-day" type="button" class="btn btn-outline-primary btn-sm">&gt;&gt;</button>
+                                </div>
+                                <div class="btn-group me-2" role="group" aria-label="Clear filter">
+                                    <button id="btn-clear" type="button" class="btn btn-outline-danger btn-sm">Clear Date Filter</button>
                                 </div>
                                 <div class="btn-group" role="group" aria-label="Date label">
                                     <span id="selected-date-label" class="btn btn-light btn-sm ms-2" t-esc="selected_date or ''"> </span>
@@ -63,7 +66,6 @@
                                                                         </div>
                                                                     </td>
                                                                     <td>
-                                                                        <!-- include a data-start attribute with ISO-ish value for clarity -->
                                                                         <span class="data_planningline_id d-none"><t t-esc="pl['id']"/></span>
                                                                         <span class="start-datetime-view" t-att-data-start="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%dT%H:%M') or ''">
                                                                             <t t-esc="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%d %H:%M') or ''"/>
@@ -170,51 +172,7 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Attach a tiny inline script to handle prev/today/next navigation -->
-                    <script type="text/javascript"><![CDATA[
-                        (function() {
-                            function formatDate(d) {
-                                var mm = (d.getMonth()+1).toString().padStart(2,'0');
-                                var dd = d.getDate().toString().padStart(2,'0');
-                                return d.getFullYear() + '-' + mm + '-' + dd;
-                            }
-                            var btnPrev = document.getElementById('btn-prev-day');
-                            var btnNext = document.getElementById('btn-next-day');
-                            var btnToday = document.getElementById('btn-today');
-                            var lbl = document.getElementById('selected-date-label');
-                            var current = lbl && lbl.textContent.trim() ? lbl.textContent.trim() : null;
-                            var curDate = current ? new Date(current + 'T00:00:00') : new Date();
-
-                            function gotoDate(dateObj) {
-                                var dateStr = formatDate(dateObj);
-                                var params = new URLSearchParams(window.location.search);
-                                params.set('date', dateStr);
-                                window.location.search = params.toString();
-                            }
-
-                            if (btnPrev) {
-                                btnPrev.addEventListener('click', function() {
-                                    curDate.setDate(curDate.getDate() - 1);
-                                    gotoDate(curDate);
-                                });
-                            }
-                            if (btnNext) {
-                                btnNext.addEventListener('click', function() {
-                                    curDate.setDate(curDate.getDate() + 1);
-                                    gotoDate(curDate);
-                                });
-                            }
-                            if (btnToday) {
-                                btnToday.addEventListener('click', function() {
-                                    curDate = new Date();
-                                    gotoDate(curDate);
-                                });
-                            }
-                        })();
-                    ]]></script>
-
+                    </div>                
                 </div>
             </div>
         </t>
