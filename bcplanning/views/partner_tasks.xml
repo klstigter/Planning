@@ -1,180 +1,276 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <template id="web_partner_task_template">
-        <t t-call="website.layout">
-            <div id="task_wrap" class="oe_structure">
-                <div class="container py-4">
-                    <!-- toolbar: date navigation -->
-                    <div class="row mb-3">
-                        <div class="col-md-10 mx-auto text-center">
-                            <div class="btn-toolbar justify-content-center" role="toolbar" aria-label="Date toolbar">
-                                <div class="btn-group me-2" role="group" aria-label="Prev Today Next">
-                                    <button id="btn-prev-day" type="button" class="btn btn-outline-primary btn-sm">&lt;&lt;</button>
-                                    <button id="btn-today" type="button" class="btn btn-outline-secondary btn-sm">Selected Date</button>
-                                    <button id="btn-next-day" type="button" class="btn btn-outline-primary btn-sm">&gt;&gt;</button>
-                                </div>
-                                <div class="btn-group me-2" role="group" aria-label="Clear filter">
-                                    <button id="btn-clear" type="button" class="btn btn-outline-danger btn-sm">Clear Date Filter</button>
-                                </div>
-                                <div class="btn-group" role="group" aria-label="Date label">
-                                    <span id="selected-date-label" class="btn btn-light btn-sm ms-2" t-esc="selected_date or ''"> </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-10 mx-auto">
-                            <div class="card border-0 shadow-sm">
-                                <div class="card-body">
-                                    <table class="table table-hover align-middle" style="min-width: 900px;">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th class="text-primary fw-bold fs-6">Task</th>
-                                                <th class="text-primary fw-bold fs-6" colspan="4">Planning Lines</th>
-                                            </tr>
-                                            <tr>
-                                                <th>Description</th>
-                                                <th>Start</th>
-                                                <th>End</th>
-                                                <th>Resource</th>
-                                                <th>Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <t t-if="tasks">
-                                                <t t-foreach="tasks" t-as="task">
-                                                    <t t-set="row_counter" t-value="0"/>
-                                                    <t t-if="task['planninglines']">
-                                                        <t t-foreach="task['planninglines']" t-as="pl">
-                                                            <t t-set="pl_count" t-value="len(task.get('planninglines') or [])"/>
-                                                            <t t-set="row_counter" t-value="row_counter + 1"/>
-                                                            <t t-if="row_counter == 1">
-                                                                <tr class="planningline-row" data-editing="0" t-att-data-task-id="task['id']">
-                                                                    <td t-att-rowspan="pl_count if pl_count else 1" class="align-top">
-                                                                        <div>
-                                                                            <span class="text-muted">No.:</span>
-                                                                            <span class="fw-bold ms-1" t-esc="task['task_no']"/>
-                                                                        </div>
-                                                                        <div>
-                                                                            <span class="text-muted">Project No.:</span>
-                                                                            <span class="ms-1" t-esc="task['job_no']"/>
-                                                                        </div>
-                                                                        <div>
-                                                                            <span class="text-muted">Desc:</span>
-                                                                            <span class="ms-1" t-esc="task['task_desc']"/>
-                                                                        </div>
-                                                                    </td>
-                                                                    <td>
-                                                                        <span class="data_planningline_id d-none"><t t-esc="pl['id']"/></span>
-                                                                        <span class="start-datetime-view" t-att-data-start="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%dT%H:%M') or ''">
-                                                                            <t t-esc="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%d %H:%M') or ''"/>
-                                                                        </span>
-                                                                        <input type="datetime-local" class="start-datetime-input form-control form-control-sm d-none"
-                                                                               t-att-value="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%dT%H:%M') or ''"/>
-                                                                    </td>
-                                                                    <td>
-                                                                        <span class="end-datetime-view" t-att-data-end="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%Y-%m-%dT%H:%M') or ''">
-                                                                            <t t-esc="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%Y-%m-%d %H:%M') or ''"/>
-                                                                        </span>
-                                                                        <input type="datetime-local" class="end-datetime-input form-control form-control-sm d-none"
-                                                                               t-att-value="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%Y-%m-%dT%H:%M') or ''"/>
-                                                                    </td>
-                                                                    <td>
-                                                                        <span class="resource-view">
-                                                                            <t t-esc="dict((r['id'], r['name']) for r in resources).get(pl['pl_resource_id'], '-')"/>
-                                                                        </span>
-                                                                        <select class="resource-select form-select form-select-sm d-none">
-                                                                            <option value=""> - </option>
-                                                                            <t t-foreach="resources" t-as="resource">
-                                                                                <option t-att-value="resource['id']"
-                                                                                        t-att-selected="resource['id'] == pl['pl_resource_id'] and 'selected' or False">
-                                                                                    <t t-esc="resource['name']"/>
-                                                                                </option>
-                                                                            </t>
-                                                                        </select>
-                                                                    </td>
-                                                                    <td>
-                                                                        <button type="button" class="btn btn-sm btn-outline-primary edit-row">Edit</button>
-                                                                        <button type="button" class="btn btn-sm btn-success save-row d-none">Save</button>
-                                                                        <button type="button" class="btn btn-sm btn-secondary cancel-row d-none">Cancel</button>
-                                                                    </td>
-                                                                </tr>
-                                                            </t>
-                                                            <t t-if="row_counter &gt;= 2">
-                                                                <tr class="planningline-row" data-editing="0" t-att-data-task-id="task['id']">
-                                                                    <td>
-                                                                        <span class="data_planningline_id d-none"><t t-esc="pl['id']"/></span>
-                                                                        <span class="start-datetime-view" t-att-data-start="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%dT%H:%M') or ''">
-                                                                            <t t-esc="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%d %H:%M') or ''"/>
-                                                                        </span>
-                                                                        <input type="datetime-local" class="start-datetime-input form-control form-control-sm d-none"
-                                                                               t-att-value="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%dT%H:%M') or ''"/>
-                                                                    </td>
-                                                                    <td>
-                                                                        <span class="end-datetime-view" t-att-data-end="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%Y-%m-%dT%H:%M') or ''">
-                                                                            <t t-esc="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%Y-%m-%d %H:%M') or ''"/>
-                                                                        </span>
-                                                                        <input type="datetime-local" class="end-datetime-input form-control form-control-sm d-none"
-                                                                               t-att-value="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%Y-%m-%dT%H:%M') or ''"/>
-                                                                    </td>
-                                                                    <td>
-                                                                        <span class="resource-view">
-                                                                            <t t-esc="dict((r['id'], r['name']) for r in resources).get(pl['pl_resource_id'], '-')"/>
-                                                                        </span>
-                                                                        <select class="resource-select form-select form-select-sm d-none">
-                                                                            <option value=""> - </option>
-                                                                            <t t-foreach="resources" t-as="resource">
-                                                                                <option t-att-value="resource['id']"
-                                                                                        t-att-selected="resource['id'] == pl['pl_resource_id'] and 'selected' or False">
-                                                                                    <t t-esc="resource['name']"/>
-                                                                                </option>
-                                                                            </t>
-                                                                        </select>
-                                                                    </td>
-                                                                    <td>
-                                                                        <button type="button" class="btn btn-sm btn-outline-primary edit-row">Edit</button>
-                                                                        <button type="button" class="btn btn-sm btn-success save-row d-none">Save</button>
-                                                                        <button type="button" class="btn btn-sm btn-secondary cancel-row d-none">Cancel</button>
-                                                                    </td>
-                                                                </tr>
-                                                            </t>
-                                                        </t>
-                                                    </t>
-                                                    <t t-else="">
-                                                        <tr class="planningline-row" data-editing="0" t-att-data-task-id="task['id']">
-                                                            <td colspan="5">
-                                                                <div>
-                                                                    <span class="text-muted">No.:</span>
-                                                                    <span class="fw-bold ms-1" t-esc="task['task_no']"/>
-                                                                </div>
-                                                                <div>
-                                                                    <span class="text-muted">Project No.:</span>
-                                                                    <span class="ms-1" t-esc="task['job_no']"/>
-                                                                </div>
-                                                                <div>
-                                                                    <span class="text-muted">Desc:</span>
-                                                                    <span class="ms-1" t-esc="task['task_desc']"/>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    </t>
-                                                </t>
-                                            </t>
-                                            <!-- No tasks fallback -->
-                                            <t t-if="not tasks">
-                                                <tr>
-                                                    <td colspan="5" class="text-center text-muted">No tasks found.</td>
-                                                </tr>
-                                            </t>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    </div>                
+  <template id="web_partner_task_template">
+    <t t-call="website.layout">
+      <div id="task_wrap" class="oe_structure">
+        <div class="container py-4">
+          <!-- toolbar: date navigation -->
+          <div class="row mb-3">
+            <div class="col-12 col-md-10 mx-auto text-center">
+              <div class="btn-toolbar justify-content-center" role="toolbar" aria-label="Date toolbar">
+                <div class="btn-group me-2" role="group" aria-label="Prev Today Next">
+                  <button id="btn-prev-day" type="button" class="btn btn-outline-primary btn-sm">&lt;&lt;</button>
+                  <button id="btn-today" type="button" class="btn btn-outline-secondary btn-sm">Today</button>
+                  <button id="btn-next-day" type="button" class="btn btn-outline-primary btn-sm">&gt;&gt;</button>
                 </div>
+                <div class="btn-group me-2" role="group" aria-label="Clear filter">
+                  <button id="btn-clear" type="button" class="btn btn-outline-danger btn-sm">Clear Date Filter</button>
+                </div>
+                <div class="btn-group" role="group" aria-label="Date label">
+                  <!-- selected_date is provided by controller; show empty when no filter -->
+                  <span id="selected-date-label" class="btn btn-light btn-sm ms-2" t-esc="selected_date or ''"> </span>
+                </div>
+              </div>
             </div>
-        </t>
-    </template>
+          </div>
+
+          <div class="row">
+            <div class="col-12 col-md-10 mx-auto">
+              <div class="card border-0 shadow-sm">
+                <div class="card-body">
+
+                  <!-- DESKTOP / TABLE VIEW (visible on md and larger) -->
+                  <div class="table-responsive d-none d-md-block">
+                    <table class="table table-hover align-middle">
+                      <thead class="table-light">
+                        <tr>
+                          <th class="text-primary fw-bold fs-6">Task</th>
+                          <th class="text-primary fw-bold fs-6" colspan="4">Planning Lines</th>
+                        </tr>
+                        <tr>
+                          <th>Description</th>
+                          <th>Start</th>
+                          <th class="d-none d-sm-table-cell">End</th>
+                          <th class="d-none d-sm-table-cell">Resource</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <t t-if="tasks">
+                          <t t-foreach="tasks" t-as="task">
+                            <t t-set="row_counter" t-value="0"/>
+                            <t t-if="task['planninglines']">
+                              <t t-foreach="task['planninglines']" t-as="pl">
+                                <t t-set="pl_count" t-value="len(task.get('planninglines') or [])"/>
+                                <t t-set="row_counter" t-value="row_counter + 1"/>
+                                <t t-if="row_counter == 1">
+                                  <tr class="planningline-row" data-editing="0" t-att-data-task-id="task['id']">
+                                    <td t-att-rowspan="pl_count if pl_count else 1" class="align-top">
+                                      <div>
+                                        <span class="text-muted">No.:</span>
+                                        <span class="fw-bold ms-1" t-esc="task['task_no']"/>
+                                      </div>
+                                      <div>
+                                        <span class="text-muted">Project No.:</span>
+                                        <span class="ms-1" t-esc="task['job_no']"/>
+                                      </div>
+                                      <div>
+                                        <span class="text-muted">Desc:</span>
+                                        <span class="ms-1" t-esc="task['task_desc']"/>
+                                      </div>
+                                    </td>
+                                    <td>
+                                      <span class="data_planningline_id d-none"><t t-esc="pl['id']"/></span>
+                                      <span class="start-datetime-view" t-att-data-start="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%dT%H:%M') or ''">
+                                        <t t-esc="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%d %H:%M') or ''"/>
+                                      </span>
+                                      <input type="datetime-local" class="start-datetime-input form-control form-control-sm d-none"
+                                             t-att-value="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%dT%H:%M') or ''"/>
+                                    </td>
+                                    <td class="d-none d-sm-table-cell">
+                                      <span class="end-datetime-view" t-att-data-end="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%Y-%m-%dT%H:%M') or ''">
+                                        <t t-esc="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%Y-%m-%d %H:%M') or ''"/>
+                                      </span>
+                                      <input type="datetime-local" class="end-datetime-input form-control form-control-sm d-none"
+                                             t-att-value="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%Y-%m-%dT%H:%M') or ''"/>
+                                    </td>
+                                    <td class="d-none d-sm-table-cell">
+                                      <span class="resource-view">
+                                        <t t-esc="dict((r['id'], r['name']) for r in resources).get(pl['pl_resource_id'], '-')"/>
+                                      </span>
+                                      <select class="resource-select form-select form-select-sm d-none">
+                                        <option value=""> - </option>
+                                        <t t-foreach="resources" t-as="resource">
+                                          <option t-att-value="resource['id']"
+                                                  t-att-selected="resource['id'] == pl['pl_resource_id'] and 'selected' or False">
+                                            <t t-esc="resource['name']"/>
+                                          </option>
+                                        </t>
+                                      </select>
+                                    </td>
+                                    <td>
+                                      <button type="button" class="btn btn-sm btn-outline-primary edit-row">Edit</button>
+                                      <button type="button" class="btn btn-sm btn-success save-row d-none">Save</button>
+                                      <button type="button" class="btn btn-sm btn-secondary cancel-row d-none">Cancel</button>
+                                    </td>
+                                  </tr>
+                                </t>
+                                <t t-if="row_counter &gt;= 2">
+                                  <tr class="planningline-row" data-editing="0" t-att-data-task-id="task['id']">
+                                    <td>
+                                      <span class="data_planningline_id d-none"><t t-esc="pl['id']"/></span>
+                                      <span class="start-datetime-view" t-att-data-start="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%dT%H:%M') or ''">
+                                        <t t-esc="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%d %H:%M') or ''"/>
+                                      </span>
+                                      <input type="datetime-local" class="start-datetime-input form-control form-control-sm d-none"
+                                             t-att-value="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%dT%H:%M') or ''"/>
+                                    </td>
+                                    <td class="d-none d-sm-table-cell">
+                                      <span class="end-datetime-view" t-att-data-end="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%Y-%m-%dT%H:%M') or ''">
+                                        <t t-esc="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%Y-%m-%d %H:%M') or ''"/>
+                                      </span>
+                                      <input type="datetime-local" class="end-datetime-input form-control form-control-sm d-none"
+                                             t-att-value="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%Y-%m-%dT%H:%M') or ''"/>
+                                    </td>
+                                    <td class="d-none d-sm-table-cell">
+                                      <span class="resource-view">
+                                        <t t-esc="dict((r['id'], r['name']) for r in resources).get(pl['pl_resource_id'], '-')"/>
+                                      </span>
+                                      <select class="resource-select form-select form-select-sm d-none">
+                                        <option value=""> - </option>
+                                        <t t-foreach="resources" t-as="resource">
+                                          <option t-att-value="resource['id']"
+                                                  t-att-selected="resource['id'] == pl['pl_resource_id'] and 'selected' or False">
+                                            <t t-esc="resource['name']"/>
+                                          </option>
+                                        </t>
+                                      </select>
+                                    </td>
+                                    <td>
+                                      <button type="button" class="btn btn-sm btn-outline-primary edit-row">Edit</button>
+                                      <button type="button" class="btn btn-sm btn-success save-row d-none">Save</button>
+                                      <button type="button" class="btn btn-sm btn-secondary cancel-row d-none">Cancel</button>
+                                    </td>
+                                  </tr>
+                                </t>
+                              </t>
+                            </t>
+                            <t t-else="">
+                              <tr class="planningline-row" data-editing="0" t-att-data-task-id="task['id']">
+                                <td colspan="5">
+                                  <div>
+                                    <span class="text-muted">No.:</span>
+                                    <span class="fw-bold ms-1" t-esc="task['task_no']"/>
+                                  </div>
+                                  <div>
+                                    <span class="text-muted">Project No.:</span>
+                                    <span class="ms-1" t-esc="task['job_no']"/>
+                                  </div>
+                                  <div>
+                                    <span class="text-muted">Desc:</span>
+                                    <span class="ms-1" t-esc="task['task_desc']"/>
+                                  </div>
+                                </td>
+                              </tr>
+                            </t>
+                          </t>
+                        </t>
+                        <t t-if="not tasks">
+                          <tr>
+                            <td colspan="5" class="text-center text-muted">No tasks found.</td>
+                          </tr>
+                        </t>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <!-- MOBILE CARD LIST (visible on small screens) -->
+                  <div class="d-block d-md-none">
+                    <t t-if="tasks">
+                      <t t-foreach="tasks" t-as="task">
+                        <t t-if="task['planninglines']">
+                          <t t-foreach="task['planninglines']" t-as="pl">
+                            <div class="mobile-planning-card mb-3 p-3 border rounded bg-white" t-att-data-task-id="task['id']" t-att-data-pl-id="pl['id']">
+                              <div class="d-flex justify-content-between align-items-start">
+                                <div class="me-2" style="flex:1 1 auto; min-width:0;">
+                                  <div class="fw-bold text-truncate"><t t-esc="task['task_no']"/></div>
+                                  <div class="text-muted small text-truncate">
+                                    <span>Project: </span><t t-esc="task['job_no']"/>
+                                  </div>
+                                  <div class="small mt-1 text-truncate"><t t-esc="task['task_desc']"/></div>
+                                </div>
+                                <div class="text-end ms-2" style="flex:0 0 auto;">
+                                  <!-- Buttons: Edit / Save / Cancel -->
+                                  <div class="d-flex flex-column align-items-end">
+                                    <button type="button" class="btn btn-sm btn-outline-primary edit-row mb-1">Edit</button>
+                                    <button type="button" class="btn btn-sm btn-success save-row d-none mb-1">Save</button>
+                                    <button type="button" class="btn btn-sm btn-secondary cancel-row d-none">Cancel</button>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <hr class="my-2"/>
+
+                              <!-- Hidden id and view elements to match desktop DOM expectations -->
+                              <span class="data_planningline_id d-none"><t t-esc="pl['id']"/></span>
+
+                              <div class="mb-1">
+                                <div class="small text-muted"><strong>Start:</strong>
+                                  <div>
+                                    <span class="start-datetime-view"><t t-esc="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%d %H:%M') or '-'"/></span>
+                                    <input type="datetime-local" class="start-datetime-input form-control form-control-sm d-none mt-1"
+                                           t-att-value="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%dT%H:%M') or ''"/>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div class="mb-1">
+                                <div class="small text-muted"><strong>End:</strong>
+                                  <div>
+                                    <span class="end-datetime-view"><t t-esc="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%Y-%m-%d %H:%M') or '-'"/></span>
+                                    <input type="datetime-local" class="end-datetime-input form-control form-control-sm d-none mt-1"
+                                           t-att-value="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%Y-%m-%dT%H:%M') or ''"/>
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div>
+                                <div class="small text-muted"><strong>Resource:</strong>
+                                  <div>
+                                    <span class="resource-view">
+                                      <t t-esc="dict((r['id'], r['name']) for r in resources).get(pl['pl_resource_id'], '-')"/>
+                                    </span>
+                                    <select class="resource-select form-select form-select-sm d-none mt-1">
+                                      <option value=""> - </option>
+                                      <t t-foreach="resources" t-as="resource">
+                                        <option t-att-value="resource['id']"
+                                                t-att-selected="resource['id'] == pl['pl_resource_id'] and 'selected' or False">
+                                          <t t-esc="resource['name']"/>
+                                        </option>
+                                      </t>
+                                    </select>
+                                  </div>
+                                </div>
+                              </div>
+
+                            </div>
+                          </t>
+                        </t>
+                        <t t-else="">
+                          <!-- Task without planninglines (mobile) -->
+                          <div class="mobile-planning-card mb-3 p-3 border rounded bg-white">
+                            <div class="fw-bold"><t t-esc="task['task_no']"/></div>
+                            <div class="small text-muted"><t t-esc="task['job_no']"/></div>
+                            <div class="small mt-1"><t t-esc="task['task_desc']"/></div>
+                            <div class="text-end mt-2">
+                              <button type="button" class="btn btn-sm btn-outline-primary edit-row">Edit</button>
+                            </div>
+                          </div>
+                        </t>
+                      </t>
+                    </t>
+                    <t t-if="not tasks">
+                      <div class="text-center text-muted">No tasks found.</div>
+                    </t>
+                  </div>
+
+                </div> <!-- card-body -->
+              </div> <!-- card -->
+            </div> <!-- col -->
+          </div> <!-- row -->
+
+        </div> <!-- container -->
+      </div> <!-- task_wrap -->
+    </t>
+  </template>
 </odoo>

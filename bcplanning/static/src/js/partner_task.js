@@ -26,11 +26,9 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
             this._currentDate = this._parseDateString(urlDate);
             if (lbl) { lbl.textContent = urlDate; }
         } else if (noDate) {
-            // explicit no-date requested -> show special message
-            this._currentDate = new Date(); // internal default for prev/next
+            this._currentDate = new Date();
             if (lbl) { lbl.textContent = "No filtered on Start Date"; }
         } else {
-            // default behavior: no params -> use today filter
             this._currentDate = new Date();
             if (lbl) { lbl.textContent = this._formatDate(this._currentDate); }
         }
@@ -41,7 +39,7 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
         }
     },
 
-    // helpers (unchanged)...
+    // helpers
     _formatDate: function (d) {
         const yyyy = d.getFullYear();
         const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -61,13 +59,11 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
     _changeDateAndReload: function (dateObj) {
         this._currentDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
         const params = new URLSearchParams(window.location.search);
-        // remove no_date if present when selecting an explicit date
         if (params.has('no_date')) { params.delete('no_date'); }
         params.set('date', this._formatDate(this._currentDate));
         window.location.search = params.toString();
     },
 
-    // toolbar handlers (unchanged prev/next/today)...
     _onPrevDay: function (ev) {
         ev.preventDefault();
         const d = new Date(this._currentDate);
@@ -82,9 +78,156 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
         this._changeDateAndReload(d);
     },
 
+    // helper: find context (row or card) for a clicked button
+    _getContextElement: function ($btn) {
+        const $tr = $btn.closest('tr.planningline-row');
+        if ($tr && $tr.length) {
+            return { type: 'row', el: $tr };
+        }
+        const $card = $btn.closest('.mobile-planning-card');
+        if ($card && $card.length) {
+            return { type: 'card', el: $card };
+        }
+        return { type: null, el: null };
+    },
+
+    _onEditRow: function (ev) {
+        const $btn = $(ev.currentTarget);
+        const ctx = this._getContextElement($btn);
+        if (ctx.type === 'row') {
+            // existing desktop behavior
+            const $tr = ctx.el;
+            $tr.attr('data-editing', '1');
+            $tr.find('.start-datetime-view, .end-datetime-view, .resource-view').addClass('d-none');
+            $tr.find('.start-datetime-input, .end-datetime-input, .resource-select').removeClass('d-none');
+            $tr.find('.edit-row').addClass('d-none');
+            $tr.find('.save-row, .cancel-row').removeClass('d-none');
+        } else if (ctx.type === 'card') {
+            // mobile card edit: show inputs, hide view spans
+            const $card = ctx.el;
+            $card.find('.start-datetime-view, .end-datetime-view, .resource-view').addClass('d-none');
+            $card.find('.start-datetime-input, .end-datetime-input, .resource-select').removeClass('d-none');
+            $card.find('.edit-row').addClass('d-none');
+            $card.find('.save-row, .cancel-row').removeClass('d-none');
+            $card.attr('data-editing', '1');
+        } else {
+            // fallback: no-op
+            console.warn('Edit button context not found');
+        }
+    },
+
+    _onCancelRow: function (ev) {
+        const $btn = $(ev.currentTarget);
+        const ctx = this._getContextElement($btn);
+        if (ctx.type === 'row') {
+            const $tr = ctx.el;
+            $tr.attr('data-editing', '0');
+            $tr.find('.start-datetime-input').val($tr.find('.start-datetime-input').attr('value'));
+            $tr.find('.end-datetime-input').val($tr.find('.end-datetime-input').attr('value'));
+            $tr.find('.resource-select').val($tr.find('.resource-select').find('option[selected]').val() || '');
+            $tr.find('.start-datetime-view, .end-datetime-view, .resource-view').removeClass('d-none');
+            $tr.find('.start-datetime-input, .end-datetime-input, .resource-select').addClass('d-none');
+            $tr.find('.edit-row').removeClass('d-none');
+            $tr.find('.save-row, .cancel-row').addClass('d-none');
+        } else if (ctx.type === 'card') {
+            const $card = ctx.el;
+            $card.attr('data-editing', '0');
+            // restore values from attributes/initial values
+            $card.find('.start-datetime-input').val($card.find('.start-datetime-input').attr('value'));
+            $card.find('.end-datetime-input').val($card.find('.end-datetime-input').attr('value'));
+            // reset resource select to selected option
+            $card.find('.resource-select').val($card.find('.resource-select').find('option[selected]').val() || '');
+            $card.find('.start-datetime-view, .end-datetime-view, .resource-view').removeClass('d-none');
+            $card.find('.start-datetime-input, .end-datetime-input, .resource-select').addClass('d-none');
+            $card.find('.edit-row').removeClass('d-none');
+            $card.find('.save-row, .cancel-row').addClass('d-none');
+        } else {
+            console.warn('Cancel button context not found');
+        }
+    },
+
+    _onSaveRow: function (ev) {
+        const $btn = $(ev.currentTarget);
+        const ctx = this._getContextElement($btn);
+        let planninglineId, startDatetime, endDatetime, resourceId;
+        let $contextEl;
+
+        if (ctx.type === 'row') {
+            $contextEl = ctx.el;
+            planninglineId = $contextEl.find('.data_planningline_id').text().trim();
+            startDatetime = $contextEl.find('.start-datetime-input').val();
+            endDatetime = $contextEl.find('.end-datetime-input').val();
+            resourceId = $contextEl.find('.resource-select').val();
+        } else if (ctx.type === 'card') {
+            $contextEl = ctx.el;
+            planninglineId = $contextEl.find('.data_planningline_id').text().trim();
+            startDatetime = $contextEl.find('.start-datetime-input').val();
+            endDatetime = $contextEl.find('.end-datetime-input').val();
+            resourceId = $contextEl.find('.resource-select').val();
+        } else {
+            console.warn('Save button context not found');
+            return;
+        }
+
+        // call JSON-RPC controller
+        rpc('/bcplanningline/save', {
+            planningline_id: planninglineId,
+            start_datetime: startDatetime,
+            end_datetime: endDatetime,
+            resource_id: resourceId,
+        }).then(function(result) {
+            if (result && result.result === 'updated') {
+                // success: update view text & hide inputs
+                if (ctx.type === 'row') {
+                    $contextEl.find('.start-datetime-view').text(startDatetime ? startDatetime.replace('T', ' ') : '');
+                    $contextEl.find('.end-datetime-view').text(endDatetime ? endDatetime.replace('T', ' ') : '');
+                    $contextEl.find('.resource-view').text($contextEl.find('.resource-select option:selected').text());
+                    $contextEl.attr('data-editing', '0');
+                    $contextEl.find('.start-datetime-view, .end-datetime-view, .resource-view').removeClass('d-none');
+                    $contextEl.find('.start-datetime-input, .end-datetime-input, .resource-select').addClass('d-none');
+                    $contextEl.find('.edit-row').removeClass('d-none');
+                    $contextEl.find('.save-row, .cancel-row').addClass('d-none');
+                } else if (ctx.type === 'card') {
+                    $contextEl.find('.start-datetime-view').text(startDatetime ? startDatetime.replace('T', ' ') : '');
+                    $contextEl.find('.end-datetime-view').text(endDatetime ? endDatetime.replace('T', ' ') : '');
+                    $contextEl.find('.resource-view').text($contextEl.find('.resource-select option:selected').text());
+                    $contextEl.attr('data-editing', '0');
+                    $contextEl.find('.start-datetime-view, .end-datetime-view, .resource-view').removeClass('d-none');
+                    $contextEl.find('.start-datetime-input, .end-datetime-input, .resource-select').addClass('d-none');
+                    $contextEl.find('.edit-row').removeClass('d-none');
+                    $contextEl.find('.save-row, .cancel-row').addClass('d-none');
+                }
+                alert('Data updated successfully.');
+            } else {
+                alert(result && result.result ? result.result : 'Update failed');
+                // restore old values when provided
+                if (result && result.old_start_datetime !== undefined) {
+                    $contextEl.find('.start-datetime-input').val(result.old_start_datetime);
+                }
+                if (result && result.old_end_datetime !== undefined) {
+                    $contextEl.find('.end-datetime-input').val(result.old_end_datetime);
+                }
+                if (result && result.old_resource_id !== undefined) {
+                    $contextEl.find('.resource-select').val(result.old_resource_id);
+                }
+            }
+        }).catch(function (err) {
+            console.error('RPC error', err);
+            alert('Update failed (network or permissions).');
+        });
+    },
+
+    // Clear, Today click and other helpers unchanged...
+    _onClearClick: function (ev) {
+        ev.preventDefault();
+        const params = new URLSearchParams(window.location.search);
+        if (params.has('date')) { params.delete('date'); }
+        params.set('no_date', '1');
+        window.location.search = '?' + params.toString();
+    },
+
     _onTodayClick: function (ev) {
         ev.preventDefault();
-        // Robust native picker opener (same approach as before)
         var existing = document.getElementById('__bcplanning_date_picker');
         if (existing) {
             if (typeof existing.showPicker === 'function') {
@@ -106,94 +249,9 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
         document.body.appendChild(inp);
         var self = this;
         var cleanup = function () { try { if (inp && inp.parentNode) inp.parentNode.removeChild(inp); } catch (e) {} };
-        inp.addEventListener('change', function (ev2) {
-            var val = ev2.target.value;
-            if (val) { var picked = self._parseDateString(val); self._changeDateAndReload(picked); }
-            setTimeout(cleanup, 0);
-        });
+        inp.addEventListener('change', function (ev2) { var val = ev2.target.value; if (val) { var picked = self._parseDateString(val); self._changeDateAndReload(picked); } setTimeout(cleanup, 0); });
         inp.addEventListener('blur', function () { setTimeout(cleanup, 300); });
-        if (typeof inp.showPicker === 'function') {
-            try { inp.showPicker(); } catch (e) { inp.focus(); inp.click(); }
-        } else { inp.focus(); inp.click(); }
-    },
-
-    /**
-     * Clear date filter — set no_date=1 and remove date param, then reload.
-     */
-    _onClearClick: function (ev) {
-        ev.preventDefault();
-        const params = new URLSearchParams(window.location.search);
-        if (params.has('date')) { params.delete('date'); }
-        // Set no_date flag so server will return all records and selected_date=''
-        params.set('no_date', '1');
-        window.location.search = '?' + params.toString();
-    },
-
-    // save/edit/cancel handlers — unchanged (and should use rpc for save)...
-    _onEditRow: function (ev) {
-        // same as before
-        const $btn = $(ev.currentTarget);
-        const $tr = $btn.closest('tr.planningline-row');
-        $tr.attr('data-editing', '1');
-        $tr.find('.start-datetime-view, .end-datetime-view, .resource-view').addClass('d-none');
-        $tr.find('.start-datetime-input, .end-datetime-input, .resource-select').removeClass('d-none');
-        $tr.find('.edit-row').addClass('d-none');
-        $tr.find('.save-row, .cancel-row').removeClass('d-none');
-    },
-
-    _onCancelRow: function (ev) {
-        const $btn = $(ev.currentTarget);
-        const $tr = $btn.closest('tr.planningline-row');
-        $tr.attr('data-editing', '0');
-        $tr.find('.start-datetime-input').val($tr.find('.start-datetime-input').attr('value'));
-        $tr.find('.end-datetime-input').val($tr.find('.end-datetime-input').attr('value'));
-        $tr.find('.resource-select').val($tr.find('.resource-select').find('option[selected]').val() || '');
-        $tr.find('.start-datetime-view, .end-datetime-view, .resource-view').removeClass('d-none');
-        $tr.find('.start-datetime-input, .end-datetime-input, .resource-select').addClass('d-none');
-        $tr.find('.edit-row').removeClass('d-none');
-        $tr.find('.save-row, .cancel-row').addClass('d-none');
-    },
-
-    _onSaveRow: function (ev) {
-        const $btn = $(ev.currentTarget);
-        const $tr = $btn.closest('tr.planningline-row');
-        const planninglineId = $tr.find('.data_planningline_id').text().trim();
-        const startDatetime = $tr.find('.start-datetime-input').val();
-        const endDatetime = $tr.find('.end-datetime-input').val();
-        const resourceId = $tr.find('.resource-select').val();
-
-        rpc('/bcplanningline/save', {
-            planningline_id: planninglineId,
-            start_datetime: startDatetime,
-            end_datetime: endDatetime,
-            resource_id: resourceId,
-        }).then(function(result) {
-            if (result && result.result === 'updated') {
-                $tr.find('.start-datetime-view').text(startDatetime ? startDatetime.replace('T', ' ') : '');
-                $tr.find('.end-datetime-view').text(endDatetime ? endDatetime.replace('T', ' ') : '');
-                $tr.find('.resource-view').text($tr.find('.resource-select option:selected').text());
-                $tr.attr('data-editing', '0');
-                $tr.find('.start-datetime-view, .end-datetime-view, .resource-view').removeClass('d-none');
-                $tr.find('.start-datetime-input, .end-datetime-input, .resource-select').addClass('d-none');
-                $tr.find('.edit-row').removeClass('d-none');
-                $tr.find('.save-row, .cancel-row').addClass('d-none');
-                alert('Data updated successfully.');
-            } else {
-                alert(result && result.result ? result.result : 'Update failed');
-                if (result && result.old_start_datetime !== undefined) {
-                    $tr.find('.start-datetime-input').val(result.old_start_datetime);
-                }
-                if (result && result.old_end_datetime !== undefined) {
-                    $tr.find('.end-datetime-input').val(result.old_end_datetime);
-                }
-                if (result && result.old_resource_id !== undefined) {
-                    $tr.find('.resource-select').val(result.old_resource_id);
-                }
-            }
-        }).catch(function (err) {
-            console.error('RPC error', err);
-            alert('Update failed (network or permissions).');
-        });
+        if (typeof inp.showPicker === 'function') { try { inp.showPicker(); } catch (e) { inp.focus(); inp.click(); } } else { inp.focus(); inp.click(); }
     },
 
 });
