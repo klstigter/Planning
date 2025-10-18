@@ -1,0 +1,88 @@
+/* bcplanning - responsive tweaks for table + mobile cards */
+
+/* Basic card look */
+.mobile-planning-card {
+  background: #fff;
+  box-shadow: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Table: allow horizontal scroll on small screens and enable smooth touch scrolling */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent long text from breaking layout; allow wrapping in table cells */
+.table td, .table th {
+  word-break: break-word;
+  white-space: normal;
+}
+
+/* Desktop: optional min-width only for md+ (avoid inline fixed width) */
+@media (min-width: 768px) {
+  .bcplanning-table-minwidth {
+    min-width: 900px;
+  }
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 767.98px) {
+  /* Make inputs/selects full width inside mobile cards */
+  .mobile-planning-card .start-datetime-input,
+  .mobile-planning-card .end-datetime-input,
+  .mobile-planning-card .resource-select {
+    width: 100%;
+    max-width: 100%;
+    display: block;
+    margin-top: 0.35rem;
+  }
+
+  /* Make buttons stack or shrink to avoid horizontal overflow */
+  .mobile-planning-card .d-flex.flex-column.align-items-end {
+    align-items: flex-end;
+  }
+  .mobile-planning-card .edit-row,
+  .mobile-planning-card .save-row,
+  .mobile-planning-card .cancel-row {
+    min-width: 72px;
+  }
+
+  /* Reduce table padding & font size slightly on small screens */
+  .table td, .table th {
+    padding: 0.45rem;
+    font-size: 0.95rem;
+  }
+
+  /* Make the date label fit on small screens */
+  #selected-date-label {
+    min-width: 0;
+    max-width: 160px;
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Mobile card header truncation */
+  .mobile-planning-card .text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* Small polish for touch targets */
+button.btn-sm {
+  padding: .25rem .5rem;
+  line-height: 1.2;
+}
+
+/* Ensure resource select and datetime inputs look consistent */
+.resource-select.form-select-sm,
+.start-datetime-input.form-control-sm,
+.end-datetime-input.form-control-sm {
+  font-size: 0.95rem;
+  padding: 0.25rem 0.5rem;
+}
