@@ -257,6 +257,7 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
             end_datetime: endDatetime,
             resource_id: resourceId,
         }).then(function(result) {
+            console.log(result);            
             if (result && result.result === 'updated') {
                 // success: update view text & hide inputs
                 $contextEl.find('.start-datetime-view').text(startDatetime ? startDatetime.replace('T', ' ') : '');
