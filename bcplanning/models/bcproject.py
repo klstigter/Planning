@@ -334,9 +334,9 @@ class bcplanning_line(models.Model):
         if response.status_code in (200, 201):
             # Only update Odoo if BC succeeds
             if start_datetime:
-                self.start_datetime = datetime.strptime(start_datetime, '%Y-%m-%dT%H:%M')
+                self.start_datetime = datetime.strptime(start_datetime, '%Y-%m-%dT%H:%M:%S')
             if end_datetime:
-                self.end_datetime = datetime.strptime(end_datetime, '%Y-%m-%dT%H:%M')
+                self.end_datetime = datetime.strptime(end_datetime, '%Y-%m-%dT%H:%M:%S')
             if resource_id:
                 self.resource_id = int(resource_id)
             elif resource_id == "" or resource_id is None:
