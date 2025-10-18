@@ -332,15 +332,15 @@ class bcplanning_line(models.Model):
         url = f'https://api.businesscentral.dynamics.com/v2.0/{env_name}/api/ddsia/planning/v1.0/companies({company_id})/jobPlanningLines'
         response = self.env['bcplanning_utils'].post_request(url, payload)
         if response.status_code in (200, 201):
-            # Only update Odoo if BC succeeds
-            if start_datetime:
-                self.start_datetime = datetime.strptime(start_datetime, '%Y-%m-%dT%H:%M:%S')
-            if end_datetime:
-                self.end_datetime = datetime.strptime(end_datetime, '%Y-%m-%dT%H:%M:%S')
-            if resource_id:
-                self.resource_id = int(resource_id)
-            elif resource_id == "" or resource_id is None:
-                self.resource_id = False
+            # # Only update Odoo if BC succeeds
+            # if start_datetime:
+            #     self.start_datetime = datetime.strptime(start_datetime, '%Y-%m-%dT%H:%M:%S')
+            # if end_datetime:
+            #     self.end_datetime = datetime.strptime(end_datetime, '%Y-%m-%dT%H:%M:%S')
+            # if resource_id:
+            #     self.resource_id = int(resource_id)
+            # elif resource_id == "" or resource_id is None:
+            #     self.resource_id = False
             return True
         else:
             return False
