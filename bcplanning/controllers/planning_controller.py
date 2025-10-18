@@ -388,7 +388,7 @@ class PlanningApiController(http.Controller):
             "description": resource.name if resource else line.planning_line_desc,
         }
 
-        success = self.env['bcplanning_utils'].updatetobc_all(payload=payload if payload else None)
+        success = self.env['bcplanning_utils'].update_bc_planningline(payload=payload if payload else None)
 
         if success:
             # Only update Odoo if BC succeeds
