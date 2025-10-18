@@ -5,6 +5,8 @@ import json
 from odoo.http import Response
 from odoo.exceptions import ValidationError
 from datetime import datetime
+import logging
+_logger = logging.getLogger(__name__)
 
 class PlanningApiController(http.Controller):
 
@@ -336,58 +338,83 @@ class PlanningApiController(http.Controller):
 
     @http.route('/bcplanningline/save', type='jsonrpc', auth='user', methods=['POST'])
     def save_planningline(self, planningline_id, start_datetime=None, end_datetime=None, resource_id=None):
-        user = request.env.user
-        line = request.env['bcplanningline'].with_user(user.id).browse(int(planningline_id))
-        if not line.exists():
-            return {'result': 'Planning line not found'}
-
-        old_start = line.start_datetime
-        old_end = line.end_datetime
-        old_resource_id = line.resource_id.id if line.resource_id else None
-
-        # Parse new values
-        new_start = old_start
-        new_end = old_end
         try:
-            if start_datetime:
-                new_start = datetime.strptime(start_datetime, '%Y-%m-%dT%H:%M')
-            if end_datetime:
-                new_end = datetime.strptime(end_datetime, '%Y-%m-%dT%H:%M')
+            user = request.env.user
+            if not planningline_id:
+                return {'result': 'Planning line id missing', 'error': True}
+
+            try:
+                pl_id = int(planningline_id)
+            except Exception:
+                return {'result': f'Invalid planningline_id: {planningline_id}', 'error': True}
+
+            line = request.env['bcplanningline'].with_user(user.id).browse(pl_id)
+            if not line.exists():
+                return {'result': 'Planning line not found', 'error': True}
+
+            old_start = line.start_datetime
+            old_end = line.end_datetime
+            old_resource_id = line.resource_id.id if line.resource_id else None
+
+            # Parse new datetimes (keep the same format you used)
+            new_start = old_start
+            new_end = old_end
+            try:
+                if start_datetime:
+                    new_start = datetime.strptime(start_datetime, '%Y-%m-%dT%H:%M')
+                if end_datetime:
+                    new_end = datetime.strptime(end_datetime, '%Y-%m-%dT%H:%M')
+            except Exception as e:
+                return {
+                    'result': f'Invalid datetime format: {e}',
+                    'old_start_datetime': old_start.strftime('%Y-%m-%dT%H:%M') if old_start else '',
+                    'old_end_datetime': old_end.strftime('%Y-%m-%dT%H:%M') if old_end else '',
+                    'old_resource_id': old_resource_id,
+                    'error': True,
+                }
+
+            # Call BC update inside try — this may raise; catch to return friendly error
+            try:
+                # Your existing logic appends :00 and passes to updatetobc_all
+                sd = f'{start_datetime}:00' if start_datetime else None
+                ed = f'{end_datetime}:00' if end_datetime else None
+                success = line[0].updatetobc_all(start_datetime=sd if sd else None,
+                                                end_datetime=ed if ed else None,
+                                                resource_id=resource_id)
+            except Exception as e:
+                _logger.exception('Error updating BC for planning line %s', pl_id)
+                return {
+                    'result': f'External update failed: {str(e)}',
+                    'old_start_datetime': old_start.strftime('%Y-%m-%dT%H:%M') if old_start else '',
+                    'old_end_datetime': old_end.strftime('%Y-%m-%dT%H:%M') if old_end else '',
+                    'old_resource_id': old_resource_id,
+                    'error': True,
+                }
+
+            if success:
+                # update Odoo values only if BC succeeded
+                if start_datetime:
+                    line.start_datetime = new_start
+                if end_datetime:
+                    line.end_datetime = new_end
+                if resource_id:
+                    line.resource_id = int(resource_id)
+                elif resource_id == "" or resource_id is None:
+                    line.resource_id = False
+                return {'result': 'updated'}
+            else:
+                return {
+                    'result': 'Update to BC failed',
+                    'old_start_datetime': old_start.strftime('%Y-%m-%dT%H:%M') if old_start else '',
+                    'old_end_datetime': old_end.strftime('%Y-%m-%dT%H:%M') if old_end else '',
+                    'old_resource_id': old_resource_id,
+                    'error': True,
+                }
+
         except Exception as e:
-            return {
-                'result': f'Invalid datetime: {e}',
-                'old_start_datetime': old_start.strftime('%Y-%m-%dT%H:%M') if old_start else '',
-                'old_end_datetime': old_end.strftime('%Y-%m-%dT%H:%M') if old_end else '',
-                'old_resource_id': old_resource_id,
-            }
-
-        # Update to BC first (pass all fields together)
-        start_datetime = f'{start_datetime}:00'
-        end_datetime = f'{end_datetime}:00'
-        success = line[0].updatetobc_all(
-            start_datetime=start_datetime if start_datetime else None,
-            end_datetime=end_datetime if end_datetime else None,
-            resource_id=resource_id
-        )
-
-        if success:
-            # Only update Odoo if BC succeeds
-            if start_datetime:
-                line.start_datetime = new_start
-            if end_datetime:
-                line.end_datetime = new_end
-            if resource_id:
-                line.resource_id = int(resource_id)
-            elif resource_id == "" or resource_id is None:
-                line.resource_id = False
-            return {'result': 'updated'}
-        else:
-            return {
-                'result': 'Update to BC failed',
-                'old_start_datetime': old_start.strftime('%Y-%m-%dT%H:%M') if old_start else '',
-                'old_end_datetime': old_end.strftime('%Y-%m-%dT%H:%M') if old_end else '',
-                'old_resource_id': old_resource_id,
-            }
+            # Catch-all to prevent 500 — logs will show full traceback
+            _logger.exception('Unhandled error in /bcplanningline/save')
+            return {'result': f'Server error: {str(e)}', 'error': True}
 
     # @http.route('/bcplanningline/update', type='jsonrpc', auth='user', methods=['POST'])
     # def update_resource(self, planningline_id, resource_id):
