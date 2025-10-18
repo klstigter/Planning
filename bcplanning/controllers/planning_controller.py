@@ -338,83 +338,146 @@ class PlanningApiController(http.Controller):
 
     @http.route('/bcplanningline/save', type='jsonrpc', auth='user', methods=['POST'])
     def save_planningline(self, planningline_id, start_datetime=None, end_datetime=None, resource_id=None):
+        """
+        Save planning line update with retry on serialization failures.
+
+        - Retries transient serialization failures (Postgres SQLSTATE 40001).
+        - Returns friendly JSON responses instead of letting a 500 bubble up.
+        """
+        user = request.env.user
+        if not planningline_id:
+            return {'result': 'Planning line id missing', 'error': True}
+
         try:
-            user = request.env.user
-            if not planningline_id:
-                return {'result': 'Planning line id missing', 'error': True}
+            pl_id = int(planningline_id)
+        except Exception:
+            return {'result': f'Invalid planningline_id: {planningline_id}', 'error': True}
 
+        max_retries = 5
+        base_delay = 0.08  # seconds
+
+        for attempt in range(1, max_retries + 1):
             try:
-                pl_id = int(planningline_id)
-            except Exception:
-                return {'result': f'Invalid planningline_id: {planningline_id}', 'error': True}
+                # Load the record with the current user
+                line = request.env['bcplanningline'].with_user(user.id).browse(pl_id)
+                if not line.exists():
+                    return {'result': 'Planning line not found', 'error': True}
 
-            line = request.env['bcplanningline'].with_user(user.id).browse(pl_id)
-            if not line.exists():
-                return {'result': 'Planning line not found', 'error': True}
+                # Keep current values to return on failure
+                old_start = line.start_datetime
+                old_end = line.end_datetime
+                old_resource_id = line.resource_id.id if line.resource_id else None
 
-            old_start = line.start_datetime
-            old_end = line.end_datetime
-            old_resource_id = line.resource_id.id if line.resource_id else None
-
-            # Parse new datetimes (keep the same format you used)
-            new_start = old_start
-            new_end = old_end
-            try:
+                # Parse new datetimes (expecting 'YYYY-MM-DDTHH:mm' from JS)
+                new_start = old_start
+                new_end = old_end
                 if start_datetime:
-                    new_start = datetime.strptime(start_datetime, '%Y-%m-%dT%H:%M')
+                    try:
+                        new_start = datetime.strptime(start_datetime, '%Y-%m-%dT%H:%M')
+                    except Exception as e:
+                        return {
+                            'result': f'Invalid start_datetime format: {e}',
+                            'old_start_datetime': old_start.strftime('%Y-%m-%dT%H:%M') if old_start else '',
+                            'old_end_datetime': old_end.strftime('%Y-%m-%dT%H:%M') if old_end else '',
+                            'old_resource_id': old_resource_id,
+                            'error': True,
+                        }
                 if end_datetime:
-                    new_end = datetime.strptime(end_datetime, '%Y-%m-%dT%H:%M')
-            except Exception as e:
-                return {
-                    'result': f'Invalid datetime format: {e}',
-                    'old_start_datetime': old_start.strftime('%Y-%m-%dT%H:%M') if old_start else '',
-                    'old_end_datetime': old_end.strftime('%Y-%m-%dT%H:%M') if old_end else '',
-                    'old_resource_id': old_resource_id,
-                    'error': True,
-                }
+                    try:
+                        new_end = datetime.strptime(end_datetime, '%Y-%m-%dT%H:%M')
+                    except Exception as e:
+                        return {
+                            'result': f'Invalid end_datetime format: {e}',
+                            'old_start_datetime': old_start.strftime('%Y-%m-%dT%H:%M') if old_start else '',
+                            'old_end_datetime': old_end.strftime('%Y-%m-%dT%H:%M') if old_end else '',
+                            'old_resource_id': old_resource_id,
+                            'error': True,
+                        }
 
-            # Call BC update inside try — this may raise; catch to return friendly error
-            try:
-                # Your existing logic appends :00 and passes to updatetobc_all
+                # If you have an external sync call (updatetobc_all), be aware it may be slow.
+                # It's safer to call it after writing or to queue it. If you must call it here,
+                # keep it short. Example below assumes you call it and expect True/False.
                 sd = f'{start_datetime}:00' if start_datetime else None
                 ed = f'{end_datetime}:00' if end_datetime else None
-                success = line[0].updatetobc_all(start_datetime=sd if sd else None,
-                                                end_datetime=ed if ed else None,
-                                                resource_id=resource_id)
-            except Exception as e:
-                _logger.exception('Error updating BC for planning line %s', pl_id)
-                return {
-                    'result': f'External update failed: {str(e)}',
-                    'old_start_datetime': old_start.strftime('%Y-%m-%dT%H:%M') if old_start else '',
-                    'old_end_datetime': old_end.strftime('%Y-%m-%dT%H:%M') if old_end else '',
-                    'old_resource_id': old_resource_id,
-                    'error': True,
-                }
 
-            if success:
-                # update Odoo values only if BC succeeded
+                # Call external update (this might raise). Wrap to convert exceptions to friendly messages.
+                try:
+                    success = line[0].updatetobc_all(start_datetime=sd if sd else None,
+                                                    end_datetime=ed if ed else None,
+                                                    resource_id=resource_id)
+                except Exception as e:
+                    _logger.exception("External update failed for planning line %s", pl_id)
+                    return {
+                        'result': f'External update failed: {str(e)}',
+                        'old_start_datetime': old_start.strftime('%Y-%m-%dT%H:%M') if old_start else '',
+                        'old_end_datetime': old_end.strftime('%Y-%m-%dT%H:%M') if old_end else '',
+                        'old_resource_id': old_resource_id,
+                        'error': True,
+                    }
+
+                if not success:
+                    return {
+                        'result': 'Update to external system failed',
+                        'old_start_datetime': old_start.strftime('%Y-%m-%dT%H:%M') if old_start else '',
+                        'old_end_datetime': old_end.strftime('%Y-%m-%dT%H:%M') if old_end else '',
+                        'old_resource_id': old_resource_id,
+                        'error': True,
+                    }
+
+                # Write changes in Odoo (this is where a serialization failure may occur)
+                vals = {}
                 if start_datetime:
-                    line.start_datetime = new_start
+                    vals['start_datetime'] = new_start
                 if end_datetime:
-                    line.end_datetime = new_end
-                if resource_id:
-                    line.resource_id = int(resource_id)
-                elif resource_id == "" or resource_id is None:
-                    line.resource_id = False
-                return {'result': 'updated'}
-            else:
-                return {
-                    'result': 'Update to BC failed',
-                    'old_start_datetime': old_start.strftime('%Y-%m-%dT%H:%M') if old_start else '',
-                    'old_end_datetime': old_end.strftime('%Y-%m-%dT%H:%M') if old_end else '',
-                    'old_resource_id': old_resource_id,
-                    'error': True,
-                }
+                    vals['end_datetime'] = new_end
+                # handle resource id: empty string => remove, else set integer
+                if resource_id is not None and resource_id != '':
+                    try:
+                        vals['resource_id'] = int(resource_id)
+                    except Exception:
+                        vals['resource_id'] = resource_id
+                elif resource_id == '' or resource_id is None:
+                    vals['resource_id'] = False
 
-        except Exception as e:
-            # Catch-all to prevent 500 — logs will show full traceback
-            _logger.exception('Unhandled error in /bcplanningline/save')
-            return {'result': f'Server error: {str(e)}', 'error': True}
+                if vals:
+                    line.write(vals)
+
+                # Success
+                return {'result': 'updated'}
+
+            except psycopg2.DatabaseError as db_err:
+                pgcode = getattr(db_err, 'pgcode', None)
+                # SQLSTATE 40001 is serialization failure (concurrent update)
+                if pgcode == errorcodes.SERIALIZATION_FAILURE or pgcode == '40001':
+                    _logger.warning("Serialization failure on update pl %s (attempt %s/%s): %s",
+                                    pl_id, attempt, max_retries, db_err)
+                    try:
+                        request.env.cr.rollback()
+                    except Exception:
+                        _logger.exception("Rollback failed after serialization failure")
+                    if attempt < max_retries:
+                        time.sleep(base_delay * attempt)
+                        continue
+                    else:
+                        return {'result': 'Could not update due to concurrent updates (please retry)', 'error': True}
+                else:
+                    _logger.exception("Database error when saving planning line %s", pl_id)
+                    try:
+                        request.env.cr.rollback()
+                    except Exception:
+                        _logger.exception("Rollback failed after db error")
+                    return {'result': f'Database error: {str(db_err)}', 'error': True}
+
+            except Exception as e:
+                _logger.exception("Unhandled error in /bcplanningline/save for pl %s", pl_id)
+                try:
+                    request.env.cr.rollback()
+                except Exception:
+                    _logger.exception("Rollback failed after exception")
+                return {'result': f'Unexpected server error: {str(e)}', 'error': True}
+
+        # fallback if loop exits
+        return {'result': 'Could not complete update after retries', 'error': True}
 
     # @http.route('/bcplanningline/update', type='jsonrpc', auth='user', methods=['POST'])
     # def update_resource(self, planningline_id, resource_id):
