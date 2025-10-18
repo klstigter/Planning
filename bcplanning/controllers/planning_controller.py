@@ -4,9 +4,13 @@ from odoo.exceptions import AccessDenied
 import json
 from odoo.http import Response
 from odoo.exceptions import ValidationError
+import time
 from datetime import datetime
 import logging
 _logger = logging.getLogger(__name__)
+
+import psycopg2
+from psycopg2 import errorcodes
 
 class PlanningApiController(http.Controller):
 
@@ -341,34 +345,34 @@ class PlanningApiController(http.Controller):
         """
         Save planning line update with retry on serialization failures.
 
+        - Expects start_datetime/end_datetime in 'YYYY-MM-DDTHH:MM' format from JS (datetime-local).
         - Retries transient serialization failures (Postgres SQLSTATE 40001).
-        - Returns friendly JSON responses instead of letting a 500 bubble up.
+        - Returns JSON objects like {'result': 'updated'} or {'result': '...', 'error': True}.
         """
         user = request.env.user
         if not planningline_id:
             return {'result': 'Planning line id missing', 'error': True}
-
         try:
             pl_id = int(planningline_id)
         except Exception:
             return {'result': f'Invalid planningline_id: {planningline_id}', 'error': True}
 
         max_retries = 5
-        base_delay = 0.08  # seconds
+        base_delay = 0.08  # seconds, exponential backoff multiplier
 
         for attempt in range(1, max_retries + 1):
             try:
-                # Load the record with the current user
+                # Load record
                 line = request.env['bcplanningline'].with_user(user.id).browse(pl_id)
                 if not line.exists():
                     return {'result': 'Planning line not found', 'error': True}
 
-                # Keep current values to return on failure
+                # Keep current values to restore on error
                 old_start = line.start_datetime
                 old_end = line.end_datetime
                 old_resource_id = line.resource_id.id if line.resource_id else None
 
-                # Parse new datetimes (expecting 'YYYY-MM-DDTHH:mm' from JS)
+                # Parse datetimes (JS sends 'YYYY-MM-DDTHH:MM')
                 new_start = old_start
                 new_end = old_end
                 if start_datetime:
@@ -394,17 +398,18 @@ class PlanningApiController(http.Controller):
                             'error': True,
                         }
 
-                # If you have an external sync call (updatetobc_all), be aware it may be slow.
-                # It's safer to call it after writing or to queue it. If you must call it here,
-                # keep it short. Example below assumes you call it and expect True/False.
+                # Prepare values for external call (if needed)
                 sd = f'{start_datetime}:00' if start_datetime else None
                 ed = f'{end_datetime}:00' if end_datetime else None
 
-                # Call external update (this might raise). Wrap to convert exceptions to friendly messages.
+                # Call external sync (updatetobc_all). WARNING: if this is slow,
+                # prefer to queue it instead of calling synchronously here.
                 try:
-                    success = line[0].updatetobc_all(start_datetime=sd if sd else None,
-                                                    end_datetime=ed if ed else None,
-                                                    resource_id=resource_id)
+                    success = line[0].updatetobc_all(
+                        start_datetime=sd if sd else None,
+                        end_datetime=ed if ed else None,
+                        resource_id=resource_id
+                    )
                 except Exception as e:
                     _logger.exception("External update failed for planning line %s", pl_id)
                     return {
@@ -424,13 +429,13 @@ class PlanningApiController(http.Controller):
                         'error': True,
                     }
 
-                # Write changes in Odoo (this is where a serialization failure may occur)
+                # Prepare vals to write to Odoo
                 vals = {}
                 if start_datetime:
                     vals['start_datetime'] = new_start
                 if end_datetime:
                     vals['end_datetime'] = new_end
-                # handle resource id: empty string => remove, else set integer
+                # resource handling: empty string clears, numeric sets
                 if resource_id is not None and resource_id != '':
                     try:
                         vals['resource_id'] = int(resource_id)
@@ -442,15 +447,16 @@ class PlanningApiController(http.Controller):
                 if vals:
                     line.write(vals)
 
-                # Success
                 return {'result': 'updated'}
 
             except psycopg2.DatabaseError as db_err:
                 pgcode = getattr(db_err, 'pgcode', None)
-                # SQLSTATE 40001 is serialization failure (concurrent update)
+                # SQLSTATE 40001 = serialization_failure (concurrent update)
                 if pgcode == errorcodes.SERIALIZATION_FAILURE or pgcode == '40001':
-                    _logger.warning("Serialization failure on update pl %s (attempt %s/%s): %s",
-                                    pl_id, attempt, max_retries, db_err)
+                    _logger.warning(
+                        "Serialization failure updating bcplanningline %s (attempt %s/%s): %s",
+                        pl_id, attempt, max_retries, db_err
+                    )
                     try:
                         request.env.cr.rollback()
                     except Exception:
@@ -469,14 +475,14 @@ class PlanningApiController(http.Controller):
                     return {'result': f'Database error: {str(db_err)}', 'error': True}
 
             except Exception as e:
-                _logger.exception("Unhandled error in /bcplanningline/save for pl %s", pl_id)
+                _logger.exception("Unexpected error in /bcplanningline/save for pl %s", pl_id)
                 try:
                     request.env.cr.rollback()
                 except Exception:
                     _logger.exception("Rollback failed after exception")
                 return {'result': f'Unexpected server error: {str(e)}', 'error': True}
 
-        # fallback if loop exits
+        # Fallback (shouldn't reach here)
         return {'result': 'Could not complete update after retries', 'error': True}
 
     # @http.route('/bcplanningline/update', type='jsonrpc', auth='user', methods=['POST'])
