@@ -391,7 +391,7 @@ class PlanningApiController(http.Controller):
         success = self.env['bcplanning_utils'].update_bc_planningline(payload=payload if payload else None)
 
         if success:
-            # # Only update Odoo if BC succeeds
+            # # Only update Odoo if BC succeeds: LAGI
             # if start_datetime:
             #     line.start_datetime = new_start
             # if end_datetime:
