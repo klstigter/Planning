@@ -4,6 +4,31 @@
     <t t-call="website.layout">
       <div id="task_wrap" class="oe_structure">
         <div class="container py-4">
+
+          <!-- Project context / breadcrumb: always visible so user knows project scope -->
+          <div class="row mb-2">
+            <div class="col-12 col-md-10 mx-auto">
+              <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                  <li class="breadcrumb-item"><a t-att-href="'/partner/projects'">Projects</a></li>
+                  <t t-if="job_id">
+                    <li class="breadcrumb-item active" aria-current="page">
+                      <span class="fw-bold"><t t-esc="job_no or job_id"/></span>
+                      <t t-if="job_desc and job_desc != ''">
+                        <span class="text-muted"> — <t t-esc="job_desc"/></span>
+                      </t>
+                    </li>
+                  </t>
+                  <t t-if="not job_id">
+                    <li class="breadcrumb-item active" aria-current="page">
+                      <span class="text-muted">All projects</span>
+                    </li>
+                  </t>
+                </ol>
+              </nav>
+            </div>
+          </div>
+
           <!-- toolbar: date navigation -->
           <div class="row mb-3">
             <div class="col-12 col-md-10 mx-auto text-center">
@@ -17,8 +42,8 @@
                   <button id="btn-clear" type="button" class="btn btn-outline-danger btn-sm">Clear Date Filter</button>
                 </div>
                 <div class="btn-group" role="group" aria-label="Date label">
-                  <!-- selected_date is provided by controller; show empty when no filter -->
-                  <span id="selected-date-label" class="btn btn-light btn-sm ms-2" t-esc="selected_date or ''"> </span>
+                  <!-- Show selected_date or explicit 'All dates' when no date filter is applied -->
+                  <span id="selected-date-label" class="btn btn-light btn-sm ms-2" t-esc="selected_date or 'All dates'"> </span>
                 </div>
               </div>
             </div>
