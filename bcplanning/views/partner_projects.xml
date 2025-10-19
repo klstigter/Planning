@@ -1,74 +1,90 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <template id="web_partner_project_template">
-        <t t-call="website.layout">
-            <div id="project_wrap" class="oe_structure oe_empty">
-                <div class="container">
-                    <div class="header">
-                        <h3>Partner Project List</h3>
-                    </div>
-                    <div class="s_website_form_rows row s_col_no_bgcolor">
-                        <div class="row s_col_no_resize s_col_no_bgcolor">
-                            <label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="studio1">
-                                <span class="s_website_form_label_content">Partner Name</span>
-                            </label>
-                            <div class="col-sm"><span t-esc="partner_name"/></div>
-                            <div class="row s_col_no_resize s_col_no_bgcolor">
-                                <label class="col-form-label col-sm-auto s_website_form_label" style="width: 200px" for="studio1">
-                                    <span class="s_website_form_label_content">Number of Projects</span>
-                                </label>
-                                <div class="col-sm"><span t-esc="number_of_project"/></div>
-                            </div>
-                        </div>
+  <template id="web_partner_project_template" name="Partner Project List">
+    <t t-call="website.layout">
+      <div id="project_wrap" class="bcplanning-projects container py-4">
+        <div class="row align-items-center mb-3">
+          <div class="col-md-8">
+            <h1 class="h4 mb-0">Partner Project List</h1>
+            <p class="text-muted mb-0">Projects and open tasks for <strong><t t-esc="partner_name"/></strong></p>
+          </div>
+          <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            <span class="d-inline-block small text-muted me-2">Projects</span>
+            <span class="badge bg-primary" t-esc="number_of_project or 0"/>
+          </div>
+        </div>
 
-                        <div class="form-group">
-                            <div class='row ml-1' style="width:99%;">
-                                <div class="form-group col-12 show_total_project">
-                                    <div class="row s_col_no_resize s_col_no_bgcolor">
-                                        <table class="table table-bordered mt-3 total_project_costs" id="project_table">
-                                            <thead>
-                                                <tr>
-                                                    <td><strong>Project No.</strong></td>
-                                                    <td><strong>Project Name</strong></td>
-                                                    <td><strong>Number of Task</strong></td>
-                                                    <td>Open Tasks</td>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <t t-foreach="projects" t-as="project">
-                                                    <tr>
-                                                        <td><span t-esc="project['job_no']"/></td>
-                                                        <td><span t-esc="project['job_desc']"/></td>
-                                                        <td><span t-esc="project['task_count']"/></td>
-                                                        <td>
-                                                            <button class="btn fa fa-bars open_project_planning_line"
-                                                                    style="padding: 0px; 
-                                                                            margin-left: -6px;
-                                                                            margin-top: 6px;
-                                                                            margin-bottom:15px;"
-                                                                    name="Tasks"
-                                                                    aria-label="Task and Resource"
-                                                                    data-job_id="[[ project['id'] ]]"
-                                                                    data-job_no="[[ project['job_no'] ]]"
-                                                                    data-job_name="[[ project['job_desc'] ]]"
-                                                            ></button>
-                                                            <!-- Hidden spans for data -->
-                                                            <span class="data_project_id" style="display:none"><t t-esc="project['id']"/></span>
-                                                            <span class="data_project_no" style="display:none"><t t-esc="project['job_no']"/></span>
-                                                            <span class="data_project_desc" style="display:none"><t t-esc="project['job_desc']"/></span>
-                                                        </td>                                                
-                                                    </tr>
-                                                </t>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>     
+        <t t-if="projects and len(projects) &gt; 0">
+          <div class="d-none d-md-block">
+            <div class="table-responsive shadow-sm rounded">
+              <table class="table table-hover mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Project No.</th>
+                    <th>Project Name</th>
+                    <th class="text-center" style="width:150px"># Tasks</th>
+                    <th class="text-center" style="width:140px">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <t t-foreach="projects" t-as="project">
+                    <tr class="align-middle">
+                      <td class="fw-medium"><t t-esc="project['job_no'] or '-'"/></td>
+                      <td><t t-esc="project['job_desc'] or '-'"/></td>
+                      <td class="text-center"><t t-esc="project['task_count'] or 0"/></td>
+                      <td class="text-center">
+                        <a class="btn btn-sm btn-outline-primary open-project"
+                           t-att-href="'/partner/tasks?job_id=%s&amp;no_date=1' % (project['id'])"
+                           t-att-data-job-id="project['id']"
+                           role="button"
+                           aria-label="Open tasks for project">
+                          <i class="fa fa-list me-1" aria-hidden="true"></i>
+                          <span class="d-none d-sm-inline">Tasks</span>
+                        </a>
+                      </td>
+                    </tr>
+                  </t>
+                </tbody>
+              </table>
             </div>
+          </div>
+
+          <div class="d-block d-md-none">
+            <div class="row g-3">
+              <t t-foreach="projects" t-as="project">
+                <div class="col-12">
+                  <article class="card h-100 shadow-sm project-card">
+                    <div class="card-body d-flex justify-content-between align-items-start">
+                      <div class="me-3 flex-fill">
+                        <h3 class="h6 mb-1 text-truncate" t-att-title="project['job_no']"><t t-esc="project['job_no']"/></h3>
+                        <p class="small text-muted mb-1 text-truncate" t-att-title="project['job_desc']"><t t-esc="project['job_desc'] or '-'"/></p>
+                        <p class="small text-muted mb-0"><strong><t t-esc="project['task_count'] or 0"/></strong> tasks</p>
+                      </div>
+                      <div class="ms-2 text-end">
+                        <a class="btn btn-sm btn-primary open-project"
+                           t-att-href="'/partner/tasks?job_id=%s&amp;no_date=1' % (project['id'])"
+                           t-att-data-job-id="project['id']"
+                           role="button"
+                           aria-label="Open tasks for project">
+                          <i class="fa fa-list" aria-hidden="true"></i>
+                        </a>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </t>
+            </div>
+          </div>
         </t>
-    </template>
+
+        <t t-if="not projects or len(projects) == 0">
+          <div class="text-center py-5 text-muted">
+            <i class="fa fa-folder-open fa-2x mb-3" aria-hidden="true"></i>
+            <div>No projects found.</div>
+            <div class="small">If you think there should be projects here, contact your administrator.</div>
+          </div>
+        </t>
+      </div>
+    </t>
+  </template>
 </odoo>

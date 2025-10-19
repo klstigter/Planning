@@ -37,6 +37,7 @@
     'assets': {
         'web.assets_frontend': [            
             '/bcplanning/static/src/scss/partner_task.scss',
+            '/bcplanning/static/src/scss/partner_project.scss',
             '/bcplanning/static/src/js/partner_project.js',
             '/bcplanning/static/src/js/partner_task.js',
             '/bcplanning/static/src/js/resources.js',            

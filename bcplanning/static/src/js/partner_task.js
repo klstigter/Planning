@@ -26,9 +26,10 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
             this._currentDate = this._parseDateString(urlDate);
             if (lbl) { lbl.textContent = urlDate; }
         } else if (noDate) {
-            // explicit no-date requested -> show special message
-            this._currentDate = new Date(); // internal default for prev/next
-            if (lbl) { lbl.textContent = "No filtered on Start Date"; }
+            // explicit no-date requested -> show ALL tasks. Keep selected-date label EMPTY so
+            // it's clear there is no date filter applied initially.
+            this._currentDate = new Date(); // internal default for prev/next calculations
+            if (lbl) { lbl.textContent = ''; }
         } else {
             // default behavior: no params -> use today filter
             this._currentDate = new Date();
@@ -41,7 +42,6 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
         }
     },
 
-    // helpers
     _formatDate: function (d) {
         const yyyy = d.getFullYear();
         const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -67,7 +67,6 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
         window.location.search = params.toString();
     },
 
-    // toolbar handlers
     _onPrevDay: function (ev) {
         ev.preventDefault();
         const d = new Date(this._currentDate);
@@ -84,7 +83,7 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
 
     _onTodayClick: function (ev) {
         ev.preventDefault();
-        // Robust native picker opener
+        // same picker strategy as you already had
         var existing = document.getElementById('__bcplanning_date_picker');
         if (existing) {
             if (typeof existing.showPicker === 'function') {
@@ -146,9 +145,6 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
         }
     },
 
-    /**
-     * Clear date filter — set no_date=1 and remove date param, then reload.
-     */
     _onClearClick: function (ev) {
         ev.preventDefault();
         const params = new URLSearchParams(window.location.search);
@@ -158,7 +154,6 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
         window.location.search = '?' + params.toString();
     },
 
-    // helper: find context (row or card) for a clicked button
     _getContextElement: function ($btn) {
         const $tr = $btn.closest('tr.planningline-row');
         if ($tr && $tr.length) {
@@ -244,21 +239,18 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
             return;
         }
 
-        // Basic validation
         if (!planninglineId) {
             alert('Planning line id not available. Cannot save.');
             return;
         }
 
-        // call JSON-RPC controller
         rpc('/bcplanningline/save', {
             planningline_id: planninglineId,
             start_datetime: startDatetime,
             end_datetime: endDatetime,
             resource_id: resourceId,
-        }).then(function(result) {            
+        }).then(function(result) {
             if (result && result.result === 'updated') {
-                // success: update view text & hide inputs
                 $contextEl.find('.start-datetime-view').text(startDatetime ? startDatetime.replace('T', ' ') : '');
                 $contextEl.find('.end-datetime-view').text(endDatetime ? endDatetime.replace('T', ' ') : '');
                 $contextEl.find('.resource-view').text($contextEl.find('.resource-select option:selected').text());
@@ -269,7 +261,6 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
                 $contextEl.find('.save-row, .cancel-row').addClass('d-none');
                 alert('Data updated successfully.');
             } else {
-                // Show server-provided message if present
                 const msg = (result && result.result) ? result.result : 'Update failed';
                 alert(msg);
                 if (result && result.old_start_datetime !== undefined) {
@@ -284,19 +275,14 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
             }
         }).catch(function (err) {
             console.error('RPC error (network or server):', err);
-            // Attempt to show meaningful server-side message if present
             var userMsg = 'Update failed (network or permissions).';
             try {
                 if (err && err.data && err.data.message) {
                     userMsg = err.data.message;
                 } else if (err && err.data && err.data.debug && typeof err.data.debug === 'string') {
-                    // sometimes Odoo returns a debug string with the exception message
-                    // show the first line to keep it readable
                     userMsg = err.data.debug.split('\n')[0];
                 }
-            } catch (e) {
-                // ignore parsing errors
-            }
+            } catch (e) {}
             alert(userMsg);
         });
     },
