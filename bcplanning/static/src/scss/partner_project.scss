@@ -1,0 +1,26 @@
+/* Additional responsive fallback: convert table rows to stacked blocks on xs screens */
+@media (max-width: 575.98px) {
+  .bcplanning-projects table.table thead {
+    display: none;
+  }
+  .bcplanning-projects table.table tbody,
+  .bcplanning-projects table.table tr,
+  .bcplanning-projects table.table td {
+    display: block;
+    width: 100%;
+  }
+  .bcplanning-projects table.table tr {
+    margin-bottom: 0.75rem;
+    border: 1px solid rgba(0,0,0,0.05);
+    border-radius: 6px;
+    padding: 0.5rem;
+  }
+  .bcplanning-projects table.table td {
+    padding: 0.35rem 0.5rem;
+    text-align: left;
+  }
+  .bcplanning-projects table.table td .open-project {
+    display: inline-block;
+    margin-top: 0.25rem;
+  }
+}
