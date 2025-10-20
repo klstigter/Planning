@@ -86,10 +86,57 @@ class PlanningApiController(http.Controller):
                         })
         return Response(json.dumps(contact_recs),content_type='application/json;charset=utf-8',status=200)
 
+    @http.route('/planning/deleteplanningline', type='http', auth='api_key', methods=['POST'], csrf=False)
+    def deleteplanningline(self, **kwargs):
+        posted_data = {}
+        try:
+            posted_data = json.loads(request.httprequest.data.decode('utf-8'))
+        except Exception as e:                
+            raise ValidationError(f"submitted data is invalid: {str(request.httprequest.data.decode('utf-8'))}")
+
+        planning_line_jobno = posted_data.get('bc_jobplanningline_jobno')
+        planning_line_taskno = posted_data.get('bc_jobplanningline_taskno')
+        planning_line_lineno = posted_data.get('bc_jobplanningline_lineno')
+
+        # Check Job/Project 
+        project = request.env['bcproject'].sudo().search([('job_no','=',planning_line_jobno)], limit=1)
+        if not project:
+            raise ValidationError(f'Project not found for job_no {planning_line_jobno}')
+
+        # Check Task
+        task = request.env['bctask'].sudo().search([('task_no','=',planning_line_taskno), ('job_id','=', project.id)], limit=1)
+        if not task:
+            raise ValidationError(f'Task not found for job_no {planning_line_jobno} and task_no {planning_line_taskno}')
+
+        # Planning Line
+        planningline_rec = self.env['bcplanningline'].sudo().search([('planning_line_lineno','=',planning_line_lineno), ('task_id','=',task.id)], limit=1)
+        if planningline_rec:
+            planningline_rec.sudo().unlink()            
+            result = {
+                        'job_no': project.job_no,
+                        'task_no': task.task_no,
+                        'planning_lineno': planningline_rec.planning_line_lineno,
+                        'deleted': 'ok',
+                    }
+            response = json.dumps({'status': 'success', 'received': result})
+            return request.make_response(response, headers=[('Content-Type', 'application/json')])
+        else:
+            result = {
+                        'job_no': 'not found',
+                        'task_no': 'not found',
+                        'planning_lineno': 0,
+                        'deleted': 'record not found',
+                    }
+            response = json.dumps({'status': 'success', 'received': result})
+            return request.make_response(response, headers=[('Content-Type', 'application/json')])
+            
+
     @http.route('/planning/planninglinefrombc', type='http', auth='api_key', methods=['POST'], csrf=False)
     def planninglinefrombc(self, **kwargs):
         """
         {
+            "bc_jobplanningline_jobno": xxx,
+            "bc_jobplanningline_taskno": xxx,
             "bc_jobplanningline_lineno":50000,
             "bc_jobplanningline_type":"Text",
             "bc_jobplanningline_no":"VACANT",
