@@ -111,11 +111,12 @@ class PlanningApiController(http.Controller):
         # Planning Line
         planningline_rec = request.env['bcplanningline'].sudo().search([('planning_line_lineno','=',planning_line_lineno), ('task_id','=',task.id)], limit=1)
         if planningline_rec:
-            planningline_rec.unlink()
+            for rec in planningline_rec:
+                rec.unlink()
             result = {
-                        'job_no': project.job_no,
-                        'task_no': task.task_no,
-                        'planning_lineno': planningline_rec.planning_line_lineno,
+                        'job_no': planning_line_jobno,
+                        'task_no': planning_line_taskno,
+                        'planning_lineno': planning_line_lineno,
                         'deleted': 'ok',
                     }
             response = json.dumps({'status': 'success', 'received': result})
