@@ -109,9 +109,9 @@ class PlanningApiController(http.Controller):
             raise ValidationError(f'Task not found for job_no {planning_line_jobno} and task_no {planning_line_taskno}')
 
         # Planning Line
-        planningline_rec = self.env['bcplanningline'].sudo().search([('planning_line_lineno','=',planning_line_lineno), ('task_id','=',task.id)], limit=1)
+        planningline_rec = request.env['bcplanningline'].sudo().search([('planning_line_lineno','=',planning_line_lineno), ('task_id','=',task.id)], limit=1)
         if planningline_rec:
-            planningline_rec.sudo().unlink()            
+            planningline_rec.unlink()
             result = {
                         'job_no': project.job_no,
                         'task_no': task.task_no,
@@ -127,9 +127,9 @@ class PlanningApiController(http.Controller):
                         'planning_lineno': 0,
                         'deleted': 'record not found',
                     }
-            response = json.dumps({'status': 'success', 'received': result})
+            response = json.dumps({'status': 'error', 'received': result})
             return request.make_response(response, headers=[('Content-Type', 'application/json')])
-            
+
 
     @http.route('/planning/planninglinefrombc', type='http', auth='api_key', methods=['POST'], csrf=False)
     def planninglinefrombc(self, **kwargs):
@@ -421,7 +421,7 @@ class PlanningApiController(http.Controller):
 
         resource = False
         if resource_id:
-            resource = self.env['res.partner'].sudo().browse(int(resource_id))
+            resource = request.env['res.partner'].sudo().browse(int(resource_id))
         payload = {
             "jobNo": line.task_id.job_id.job_no,
             "jobTaskNo": line.task_id.task_no,
@@ -435,7 +435,7 @@ class PlanningApiController(http.Controller):
             "description": resource.name if resource else line.planning_line_desc,
         }
 
-        success = self.env['bcplanning_utils'].update_bc_planningline(payload=payload if payload else None)
+        success = request.env['bcplanning_utils'].update_bc_planningline(payload=payload if payload else None)
 
         if success:
             # Only update Odoo if BC succeeds: LAGI
@@ -473,7 +473,7 @@ class PlanningApiController(http.Controller):
 
     #     new_resource = False
     #     if resource_id:
-    #         new_resource = self.env['res.partner'].sudo().search([('id','=',int(resource_id))])
+    #         new_resource = request.env['res.partner'].sudo().search([('id','=',int(resource_id))])
     #         if new_resource:
     #             new_resource = new_resource[0]
 
