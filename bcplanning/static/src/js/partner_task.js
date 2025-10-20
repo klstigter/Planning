@@ -26,12 +26,9 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
             this._currentDate = this._parseDateString(urlDate);
             if (lbl) { lbl.textContent = urlDate; }
         } else if (noDate) {
-            // explicit no-date requested -> show ALL tasks. Keep selected-date label EMPTY so
-            // it's clear there is no date filter applied initially.
-            this._currentDate = new Date(); // internal default for prev/next calculations
+            this._currentDate = new Date();
             if (lbl) { lbl.textContent = ''; }
         } else {
-            // default behavior: no params -> use today filter
             this._currentDate = new Date();
             if (lbl) { lbl.textContent = this._formatDate(this._currentDate); }
         }
@@ -39,6 +36,25 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
         if (!(this._currentDate instanceof Date) || isNaN(this._currentDate)) {
             this._currentDate = new Date();
             if (lbl) { lbl.textContent = this._formatDate(this._currentDate); }
+        }
+    },
+
+    // helper: overlay show/hide
+    _showOverlay: function () {
+        var el = document.getElementById('bcplanning-overlay');
+        if (el) { el.classList.remove('d-none'); }
+    },
+    _hideOverlay: function () {
+        var el = document.getElementById('bcplanning-overlay');
+        if (el) { el.classList.add('d-none'); }
+    },
+
+    // helper: enable/disable controls in the current row/card
+    _setContextButtonsDisabled: function ($contextEl, disabled) {
+        try {
+            $contextEl.find('button, input, select').prop('disabled', !!disabled);
+        } catch (e) {
+            // ignore
         }
     },
 
@@ -61,7 +77,6 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
     _changeDateAndReload: function (dateObj) {
         this._currentDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
         const params = new URLSearchParams(window.location.search);
-        // remove no_date if present when selecting an explicit date
         if (params.has('no_date')) { params.delete('no_date'); }
         params.set('date', this._formatDate(this._currentDate));
         window.location.search = params.toString();
@@ -83,7 +98,6 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
 
     _onTodayClick: function (ev) {
         ev.preventDefault();
-        // same picker strategy as you already had
         var existing = document.getElementById('__bcplanning_date_picker');
         if (existing) {
             if (typeof existing.showPicker === 'function') {
@@ -149,7 +163,6 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
         ev.preventDefault();
         const params = new URLSearchParams(window.location.search);
         if (params.has('date')) { params.delete('date'); }
-        // Set no_date flag so server will return all records and selected_date=''
         params.set('no_date', '1');
         window.location.search = '?' + params.toString();
     },
@@ -210,7 +223,8 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
             $card.find('.start-datetime-view, .end-datetime-view, .resource-view').removeClass('d-none');
             $card.find('.start-datetime-input, .end-datetime-input, .resource-select').addClass('d-none');
             $card.find('.edit-row').removeClass('d-none');
-            $card.find('.save-row, .cancel-row').removeClass('d-none'); // keep consistent
+            // HIDE save & cancel on cancel (was incorrectly showing them)
+            $card.find('.save-row, .cancel-row').addClass('d-none');
         } else {
             console.warn('Cancel button context not found');
         }
@@ -244,13 +258,21 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
             return;
         }
 
+        // show spinner and disable controls to prevent multi-click
+        this._showOverlay();
+        this._setContextButtonsDisabled($contextEl, true);
+        $btn.prop('disabled', true);
+
+        const self = this;
         rpc('/bcplanningline/save', {
             planningline_id: planninglineId,
             start_datetime: startDatetime,
             end_datetime: endDatetime,
             resource_id: resourceId,
         }).then(function(result) {
+            // success path: controller returns {'result': 'updated'} when BC ok
             if (result && result.result === 'updated') {
+                // update UI
                 $contextEl.find('.start-datetime-view').text(startDatetime ? startDatetime.replace('T', ' ') : '');
                 $contextEl.find('.end-datetime-view').text(endDatetime ? endDatetime.replace('T', ' ') : '');
                 $contextEl.find('.resource-view').text($contextEl.find('.resource-select option:selected').text());
@@ -260,21 +282,45 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
                 $contextEl.find('.edit-row').removeClass('d-none');
                 $contextEl.find('.save-row, .cancel-row').addClass('d-none');
                 alert('Data updated successfully.');
-            } else {
-                const msg = (result && result.result) ? result.result : 'Update failed';
-                alert(msg);
+                return;
+            }
+
+            // failure path: controller returned a business failure (didn't update BC)
+            const msg = (result && result.result) ? result.result : 'Update failed';
+            alert(msg);
+
+            // restore values returned by server (if provided); otherwise let cancel handler restore from attr(value)
+            try {
                 if (result && result.old_start_datetime !== undefined) {
+                    // old_start_datetime format expected 'YYYY-MM-DDTHH:MM' or ''
                     $contextEl.find('.start-datetime-input').val(result.old_start_datetime);
+                    $contextEl.find('.start-datetime-input').attr('value', result.old_start_datetime);
+                    $contextEl.find('.start-datetime-view').text(result.old_start_datetime ? result.old_start_datetime.replace('T', ' ') : '');
                 }
                 if (result && result.old_end_datetime !== undefined) {
                     $contextEl.find('.end-datetime-input').val(result.old_end_datetime);
+                    $contextEl.find('.end-datetime-input').attr('value', result.old_end_datetime);
+                    $contextEl.find('.end-datetime-view').text(result.old_end_datetime ? result.old_end_datetime.replace('T', ' ') : '');
                 }
                 if (result && result.old_resource_id !== undefined) {
                     $contextEl.find('.resource-select').val(result.old_resource_id);
+                    // update resource-view text
+                    const selText = $contextEl.find('.resource-select option[value="' + result.old_resource_id + '"]').text() || '-';
+                    $contextEl.find('.resource-view').text(selText);
                 }
+            } catch (e) {
+                console.error('Error restoring values after failed save', e);
+            }
+
+            // execute cancel trigger to hide inputs and restore UI state
+            try {
+                $contextEl.find('.cancel-row').trigger('click');
+            } catch (e) {
+                console.error('Error triggering cancel after failure', e);
             }
         }).catch(function (err) {
             console.error('RPC error (network or server):', err);
+            // show meaningful server message if present
             var userMsg = 'Update failed (network or permissions).';
             try {
                 if (err && err.data && err.data.message) {
@@ -284,6 +330,22 @@ publicWidget.registry.ResourceTable = publicWidget.Widget.extend({
                 }
             } catch (e) {}
             alert(userMsg);
+
+            // If we have old values from error object (unlikely), restore them; otherwise call cancel to restore
+            try {
+                $contextEl.find('.cancel-row').trigger('click');
+            } catch (e) {
+                console.error('Error triggering cancel after RPC error', e);
+            }
+        }).finally(function() {
+            // always hide spinner and re-enable controls
+            try {
+                self._hideOverlay();
+                self._setContextButtonsDisabled($contextEl, false);
+                $btn.prop('disabled', false);
+            } catch (e) {
+                console.error('Error hiding overlay / re-enabling buttons', e);
+            }
         });
     },
 

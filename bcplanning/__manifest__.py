@@ -33,6 +33,7 @@
         'views/res_config_settings_views.xml',
         'views/partner_resource.xml',
         'views/web_partner_no_records_template.xml',
+        'views/web_task_template_overlay.xml',
     ],
     'assets': {
         'web.assets_frontend': [            
