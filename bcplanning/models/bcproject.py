@@ -93,8 +93,8 @@ class bcplanning_project(models.Model):
                     'job_id': job_rec.id,
                     'task_desc': task_desc,
                     'data_owner_id': task_planning_id,                    
-                    'task.task_date': datetime.strptime(task_date, '%Y-%m-%d') if task_date else False,
-                    'task.task_address': task_address,
+                    'task_date': datetime.strptime(task_date, '%Y-%m-%d') if task_date else False,
+                    'task_address': task_address,
                 })
 
             for pl_data in planninglines:
