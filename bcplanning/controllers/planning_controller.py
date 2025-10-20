@@ -390,19 +390,31 @@ class PlanningApiController(http.Controller):
 
     @http.route('/bcplanningline/save', type='jsonrpc', auth='user', methods=['POST'])
     def save_planningline(self, planningline_id, start_datetime=None, end_datetime=None, resource_id=None):
-        user = request.env.user
-        line = request.env['bcplanningline'].sudo().browse(int(planningline_id))
+        """
+        Minimal, safe save:
+        - Parse inputs, keep old values.
+        - Call external BC update inside try/except to prevent 500.
+        - Only write Odoo fields if BC call returns success (True).
+        - Return structured JSON for frontend to restore old values on failure.
+        """
+        # Basic validation
+        try:
+            pl_id = int(planningline_id)
+        except Exception:
+            return {'result': 'Invalid planning line id', 'error': True}
+
+        line = request.env['bcplanningline'].sudo().browse(pl_id)
         if not line.exists():
-            return {'result': 'Planning line not found'}
+            return {'result': 'Planning line not found', 'error': True}
 
         old_start = line.start_datetime
         old_end = line.end_datetime
         old_resource_id = line.resource_id.id if line.resource_id else None
 
-        # Parse new values
-        new_start = old_start
-        new_end = old_end
+        # Parse new datetimes (expecting 'YYYY-MM-DDTHH:MM' from the client)
         try:
+            new_start = old_start
+            new_end = old_end
             if start_datetime:
                 new_start = datetime.strptime(start_datetime, '%Y-%m-%dT%H:%M')
             if end_datetime:
@@ -413,16 +425,20 @@ class PlanningApiController(http.Controller):
                 'old_start_datetime': old_start.strftime('%Y-%m-%dT%H:%M') if old_start else '',
                 'old_end_datetime': old_end.strftime('%Y-%m-%dT%H:%M') if old_end else '',
                 'old_resource_id': old_resource_id,
+                'error': True,
             }
 
-        # Update to BC first (pass all fields together)
-        start_datetime = f'{start_datetime}:00'
-        end_datetime = f'{end_datetime}:00'
-
+        # Prepare payload for BC (include seconds)
+        sd = f'{start_datetime}:00' if start_datetime else (line.start_datetime and line.start_datetime.strftime('%Y-%m-%dT%H:%M:%S'))
+        ed = f'{end_datetime}:00' if end_datetime else (line.end_datetime and line.end_datetime.strftime('%Y-%m-%dT%H:%M:%S'))
 
         resource = False
         if resource_id:
-            resource = request.env['res.partner'].sudo().browse(int(resource_id))
+            try:
+                resource = request.env['res.partner'].sudo().browse(int(resource_id))
+            except Exception:
+                resource = False
+
         payload = {
             "jobNo": line.task_id.job_id.job_no,
             "jobTaskNo": line.task_id.task_no,
@@ -431,28 +447,53 @@ class PlanningApiController(http.Controller):
             "no": resource.name if resource else 'VACANT',
             "planning_resource_id": f"{resource.id if resource else 0}",
             "planning_vendor_id": f"{line.vendor_id.sudo().id if line.vendor_id.sudo() else 0}",
-            "startDateTime": start_datetime if start_datetime else (line.start_datetime and line.start_datetime.strftime('%Y-%m-%dT%H:%M')),
-            "endDateTime": end_datetime if end_datetime else (line.end_datetime and line.end_datetime.strftime('%Y-%m-%dT%H:%M')),
+            "startDateTime": sd,
+            "endDateTime": ed,
             "description": resource.name if resource else line.planning_line_desc,
         }
 
-        success = request.env['bcplanning_utils'].update_bc_planningline(payload=payload if payload else None)
+        # Call BC safely
+        try:
+            success = request.env['bcplanning_utils'].update_bc_planningline(payload=payload)
+        except Exception as e:
+            _logger.exception("External BC update failed for planningline %s", pl_id)
+            return {
+                'result': f'External update failed: {str(e)}',
+                'old_start_datetime': old_start.strftime('%Y-%m-%dT%H:%M') if old_start else '',
+                'old_end_datetime': old_end.strftime('%Y-%m-%dT%H:%M') if old_end else '',
+                'old_resource_id': old_resource_id,
+                'error': True,
+            }
 
-        if success:
-            # Only update Odoo if BC succeeds: LAGI
-            if start_datetime:
-                line.start_datetime = new_start
-            if end_datetime:
-                line.end_datetime = new_end
-            if resource_id:
-                line.resource_id = int(resource_id)
-            elif resource_id == "" or resource_id is None:
-                line.resource_id = False
+        # Handle result
+        if success is True:
+            # Only write Odoo fields on BC success
+            try:
+                if start_datetime:
+                    line.sudo().write({'start_datetime': new_start})
+                if end_datetime:
+                    line.sudo().write({'end_datetime': new_end})
+                if resource_id is not None and resource_id != '':
+                    line.sudo().write({'resource_id': int(resource_id)})
+                elif resource_id == "" or resource_id is None:
+                    line.sudo().write({'resource_id': False})
+            except Exception as e:
+                _logger.exception("Failed to write bcplanningline %s after BC success: %s", pl_id, e)
+                # If local write fails, return an error but indicate BC succeeded
+                return {
+                    'result': f'Updated in BC but local save failed: {str(e)}',
+                    'old_start_datetime': old_start.strftime('%Y-%m-%dT%H:%M') if old_start else '',
+                    'old_end_datetime': old_end.strftime('%Y-%m-%dT%H:%M') if old_end else '',
+                    'old_resource_id': old_resource_id,
+                    'error': True,
+                }
             return {'result': 'updated'}
         else:
+            # BC returned False (failure) — return old values so frontend can restore
             return {
                 'result': 'Update to BC failed',
                 'old_start_datetime': old_start.strftime('%Y-%m-%dT%H:%M') if old_start else '',
                 'old_end_datetime': old_end.strftime('%Y-%m-%dT%H:%M') if old_end else '',
                 'old_resource_id': old_resource_id,
+                'error': True,
             }

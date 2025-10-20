@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+  <!-- Inherit your existing page template and insert an overlay inside the #task_wrap container.
+       Adjust inherit_id if your template id is different. -->
+  <template id="bcplanning_overlay_snippet" inherit_id="bcplanning.web_partner_task_template">
+    <xpath expr="//div[@id='task_wrap']" position="inside">
+      <!-- Full-page overlay spinner (hidden by default) -->
+      <div id="bcplanning-overlay"
+           class="d-none position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+           style="z-index:2200; background: rgba(0,0,0,0.35);">
+        <div class="text-center text-white p-3" role="status" aria-live="polite" aria-busy="true">
+          <div class="spinner-border text-light" role="status" aria-hidden="true" style="width:3rem;height:3rem"></div>
+          <div class="mt-2">Saving, please wait…</div>
+        </div>
+      </div>
+    </xpath>
+  </template>
+</odoo>
