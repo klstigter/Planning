@@ -112,9 +112,11 @@
         <field name="model">bctask</field>
         <field name="arch" type="xml">
             <list>
+                <field name="task_date"/>
+                <field name="job_id"/>
                 <field name="task_no"/>
                 <field name="task_desc"/>
-                <field name="job_id"/>
+                <field name="task_address"/>                
                 <field name="data_owner_id"/>
             </list>
         </field>
@@ -128,10 +130,12 @@
             <form>
                 <sheet>
                     <group>
+                        <field name="task_date"/>
+                        <field name="job_id"/>
                         <field name="task_no"/>
                         <field name="task_desc"/>
+                        <field name="task_address"/>                
                         <field name="data_owner_id"/>
-                        <field name="job_id"/>
                     </group>
                     <notebook>
                         <page string="Planning Lines">
@@ -202,7 +206,8 @@
                                 <field name="data_owner_id" widget="image" options="{'preview_image': 'image_128'}" class="w-100"/>
                             </div>
                             <div><field name="task_no"/></div>                            
-                            <div><strong><field name="task_desc"/></strong></div>                            
+                            <div><strong><field name="task_desc"/></strong></div>
+                            <div><field name="task_address"/></div>
                             <div>Project: <field name="job_id"/></div>
                             <div>
                                 <table>

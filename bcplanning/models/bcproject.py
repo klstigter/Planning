@@ -73,6 +73,8 @@ class bcplanning_project(models.Model):
             task_no = task_data.get('bc_task_no')
             task_desc = task_data.get('bc_task_desc')
             task_planning_id = task_data.get('planning_user_id')
+            task_date = task_data.get('bc_task_date')
+            task_address = task_data.get('bc_task_address')
             
             planninglines = task_data.get('bc_planninglines', [])
 
@@ -83,12 +85,16 @@ class bcplanning_project(models.Model):
             if task:
                 task.task_desc = task_desc                
                 task.data_owner_id = task_planning_id 
+                task.task_date = task_date
+                task.task_address = task_address
             else:
                 task = self.env['bctask'].create({
                     'task_no': task_no,
                     'job_id': job_rec.id,
                     'task_desc': task_desc,
                     'data_owner_id': task_planning_id,                    
+                    'task.task_date': datetime.strptime(task_date, '%Y-%m-%d') if task_date else False,
+                    'task.task_address': task_address,
                 })
 
             for pl_data in planninglines:
@@ -160,6 +166,8 @@ class bcplanning_task(models.Model):
 
     task_no = fields.Char(required=True)
     task_desc = fields.Char()
+    task_date = fields.Date(string="Date")
+    task_address = fields.Char(string="Address")
     job_id = fields.Many2one(
         comodel_name='bcproject',
         string="Project Reference",
