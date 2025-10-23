@@ -51,6 +51,3 @@
     "application": True,
     "installable": True,
 }
-
-# '/bcplanning/static/src/js/projects_tabulator.js',
-
