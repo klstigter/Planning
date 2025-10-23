@@ -28,14 +28,18 @@
                     </group>
                     <notebook>
                         <page string="Tasks">
-                            <field name="task_line_filtered" mode="list,kanban">
+                            <!--
+                                Updated for Odoo 19:
+                                - Use the stored one2many 'task_line' (not the computed task_line_filtered) so the view parser can validate child fields.
+                                - Use <list> instead of deprecated <tree> (Odoo 19 uses <list>).
+                                - Keep kanban template for mobile.
+                            -->
+                            <field name="task_line" mode="list,kanban" domain="[('data_owner_id','=', uid)]">
                                 <list>
                                     <field name="task_no"/>
                                     <field name="task_desc"/>
-                                    <field name="planning_line" widget="one2many_list"/>
                                     <field name="data_owner_id"/>
                                 </list>
-                                <!-- -->
                                 <kanban class="o_kanban_mobile">
                                     <templates>
                                         <t t-name="card">
@@ -78,7 +82,6 @@
                                     <field name="planning_line"/>
                                     <field name="number_of_lines"/>
                                 </kanban>
-                                <!-- -->
                             </field>
                         </page>
                     </notebook>

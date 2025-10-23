@@ -16,6 +16,7 @@ class bcplanning_project(models.Model):
         inverse_name='job_id',
         string="Task Lines",
         copy=True, bypass_search_access=True)
+    # optional: you can keep task_line_filtered, but it's no longer required for the view/count
     task_line_filtered = fields.One2many(
         'bctask', 'job_id', string='My Task Lines', compute='_compute_task_line_filtered'
     )
@@ -29,7 +30,6 @@ class bcplanning_project(models.Model):
     @api.constrains('job_no')
     def _check_job_no_unique(self):
         for record in self:
-            # search for another record with the same job_no
             existing = self.env['bcproject'].search([
                 ('job_no', '=', record.job_no),
                 ('id', '!=', record.id)
@@ -47,9 +47,12 @@ class bcplanning_project(models.Model):
         for rec in self:
             rec.number_of_tasks = len(rec.task_line)
 
+    # NEW: compute number_of_tasks_per_user directly from task_line to avoid relying on a separate computed one2many
+    @api.depends('task_line.data_owner_id')
     def _get_numberoftasks_user(self):
+        current_user_id = self.env.uid
         for rec in self:
-            rec.number_of_tasks_per_user = len(rec.task_line_filtered)
+            rec.number_of_tasks_per_user = len(rec.task_line.filtered(lambda t: t.data_owner_id.id == current_user_id))
 
     def projectcreationfrombc(self, posted_data):
         if isinstance(posted_data, str):
