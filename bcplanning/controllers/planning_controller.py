@@ -35,10 +35,11 @@ class PlanningApiController(http.Controller):
     
     @http.route('/planning/partners', type='http', auth='api_key', methods=['GET'], csrf=False)
     def getpartners(self):
+        """
+        this endpoint will access by BC
+        """
         vendor_recs = []
-        vendors = request.env['bcexternaluser'].search([])
-        if vendors:
-            vendors = vendors.mapped('vendor_id')
+        vendors = request.env['res.partner'].search([('is_company','=',True), ('category_id','in',['Partner'])])
         if vendors:
             for ven in vendors:
                 vendor_recs.append({
@@ -50,6 +51,7 @@ class PlanningApiController(http.Controller):
     @http.route('/planning/contacts', type='http', auth='api_key', methods=['POST'], csrf=False)
     def getcontacts(self):    
         """
+        this endpoint will access by BC
         Body params:
         {
             "vendors":[{
@@ -67,12 +69,10 @@ class PlanningApiController(http.Controller):
             data = json.loads(request.httprequest.data.decode('utf-8'))
             vendor_ids = [vendor['id'] for vendor in data['vendors']]
             if vendor_ids:
-                domain = [('vendor_id.id', 'in', vendor_ids)]        
+                domain = [('id', 'in', vendor_ids)]        
         except Exception as e:
             domain = []
-        vendors = request.env['bcexternaluser'].search(domain)
-        if vendors:
-            vendors = vendors.mapped('vendor_id')
+        vendors = request.env['res.partner'].search(domain)
         if vendors:
             for ven in vendors:                
                 res = request.env['res.partner'].sudo().search([('id','=',ven.id)])
@@ -183,8 +183,12 @@ class PlanningApiController(http.Controller):
     def partner_project(self):
         user = request.env.user
         # Get Vendor
-        vendors = request.env['bcexternaluser'].with_user(user.id).search([('user_id','=',user.id)], limit=1)
-        if not vendors:
+        vendor = []
+        if user.partner_id.parent_id:
+            vendor = request.env['res.partner'].sudo().search([('id','=',user.partner_id.parent_id.id)], limit=1)
+        else:
+            vendor = request.env['res.partner'].sudo().search([('id','=',user.partner_id.id)], limit=1)
+        if not vendor:
             # raise ValidationError("setting of user vs vendor does not exist!")
             # No vendor mapping found -> show dedicated "no records" template
             datas = {
@@ -193,20 +197,17 @@ class PlanningApiController(http.Controller):
             }
             return request.render('bcplanning.web_partner_no_records_template', datas)
 
-        vendor = vendors[0]
-        res = request.env['res.partner'].sudo().search([('id','=',vendor.vendor_id.id)])
-
         number_of_project = 0
         project_data = []
         datas = {}
-        planninglines = request.env['bcplanningline'].with_user(user.id).search([('vendor_id','=',vendor.vendor_id.id)])
+        planninglines = request.env['bcplanningline'].with_user(user.id).search([('vendor_id','=',vendor.id)])
         if planninglines:
             job_ids = planninglines.mapped('job_id.id')
             number_of_project = len(job_ids) if job_ids else 0
             projects = request.env['bcproject'].with_user(user.id).search([('id','in',job_ids)])
             if projects:
                 for p in projects:                
-                    planninglines = request.env['bcplanningline'].with_user(user.id).search([('task_id.job_id.id','=',p.id), ('vendor_id','=',vendor.vendor_id.id)])
+                    planninglines = request.env['bcplanningline'].with_user(user.id).search([('task_id.job_id.id','=',p.id), ('vendor_id','=',vendor.id)])
                     if planninglines:
                         task_ids = planninglines.mapped('task_id.id')
                         project_data.append({
@@ -214,11 +215,11 @@ class PlanningApiController(http.Controller):
                             'job_no': p.job_no if p.job_no else '-',
                             'job_desc': p.job_desc if p.job_desc else '-',
                             'task_count': len(task_ids),
-                            'partner_name': res.name if res else '',
+                            'partner_name': vendor.name if vendor else '',
                         })
             datas = {
-                'partner_id': vendor.vendor_id,
-                'partner_name': res.name if res else '',
+                'partner_id': vendor.id,
+                'partner_name': vendor.name if vendor else '',
                 'number_of_project':  number_of_project,
                 'projects': project_data,
             }
@@ -234,8 +235,12 @@ class PlanningApiController(http.Controller):
         """
         user = request.env.user
 
-        # Get Vendor from bcexternaluser (adapt if your mapping differs)
-        vendors = request.env['bcexternaluser'].sudo().search([('user_id', '=', user.id)], limit=1)
+        # Get Vendor from res.partner (adapt if your mapping differs)
+        vendors = []
+        if user.partner_id.parent_id:
+            vendors = request.env['res.partner'].sudo().search([('id', '=', user.partner_id.parent_id.id)], limit=1)
+        else:
+            vendors = request.env['res.partner'].sudo().search([('id', '=', user.partner_id.id)], limit=1)
         if not vendors:
             datas = {
                 'message_title': "No vendor mapping",
@@ -244,7 +249,7 @@ class PlanningApiController(http.Controller):
             return request.render('bcplanning.web_partner_no_records_template', datas)
 
         vendor = vendors[0]
-        partner_id = vendor.vendor_id.id
+        partner_id = vendor.id
 
         # Detect parameters
         date_str = request.params.get('date') or date
@@ -277,7 +282,6 @@ class PlanningApiController(http.Controller):
 
         # Build domains conditionally
         task_data = []
-        number_of_project = 0
         project_data = []
 
         # If a specific job_id is requested
@@ -307,7 +311,6 @@ class PlanningApiController(http.Controller):
 
             planninglines = request.env['bcplanningline'].with_user(user.id).search(pl_domain)
             job_ids = planninglines.mapped('job_id.id')
-            number_of_project = len(job_ids) if job_ids else 0
             projects = request.env['bcproject'].with_user(user.id).search([('id', 'in', job_ids)]) if job_ids else request.env['bcproject'].with_user(user.id).browse([])
             tasks = request.env['bctask'].with_user(user.id).search([('id', 'in', planninglines.mapped('task_id.id'))]) if planninglines else request.env['bctask'].with_user(user.id).browse([])
 
@@ -316,7 +319,7 @@ class PlanningApiController(http.Controller):
                 for p in projects:
                     pl_for_project_domain = [
                         ('task_id.job_id.id', '=', p.id),
-                        ('vendor_id', '=', vendor.vendor_id.id),
+                        ('vendor_id', '=', vendor.id),
                     ]
                     if date_filter:
                         pl_for_project_domain += [('start_datetime', '>=', start_dt_str), ('start_datetime', '<=', end_dt_str)]
@@ -328,7 +331,7 @@ class PlanningApiController(http.Controller):
                             'job_no': p.job_no or '-',
                             'job_desc': p.job_desc or '-',
                             'task_count': len(task_ids),
-                            'partner_name': (request.env['res.partner'].sudo().browse(vendor.vendor_id.id).name if vendor.vendor_id else ''),
+                            'partner_name': (request.env['res.partner'].sudo().browse(vendor.id).name if vendor else ''),
                         })
 
         # Build task data (include planning lines only if they match date filter when enabled)
@@ -364,7 +367,7 @@ class PlanningApiController(http.Controller):
 
         # Resources
         resource_data = []
-        res = request.env['res.partner'].sudo().search([('id', '=', vendor.vendor_id.id)])
+        res = request.env['res.partner'].sudo().search([('id', '=', vendor.id)])
         if res.child_ids:
             for contact in res.child_ids:
                 resource_data.append({
@@ -378,7 +381,7 @@ class PlanningApiController(http.Controller):
             'job_id': job_id,
             'job_no': job_no,
             'job_desc': job_name,
-            'partner_name': vendor.vendor_id.name if vendor.vendor_id else 'No partner found.',
+            'partner_name': vendor.name if vendor else 'No partner found.',
             'selected_date': selected_date.strftime('%Y-%m-%d') if date_filter and selected_date else '',
         }
         return request.render('bcplanning.web_partner_task_template', datas)

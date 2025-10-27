@@ -6,14 +6,18 @@ from odoo.exceptions import ValidationError
 class ResourceApiController(http.Controller):
 
     def _get_user_vendor(self):
-        """Resolve the current user's mapped vendor via bcexternaluser."""
+        """Resolve the current user's mapped vendor via res.partner."""
         user = request.env.user
-        mapping = request.env['bcexternaluser'].sudo().search([('user_id', '=', user.id)], limit=1)
-        if not mapping or not mapping.vendor_id:
+        mapping = []
+        if user.partner_id.parent_id:
+            mapping = request.env['res.partner'].sudo().search([('id', '=', user.partner_id.parent_id.id)], limit=1)
+        else:
+            mapping = request.env['res.partner'].sudo().search([('id', '=', user.partner_id.id)], limit=1)
+        if not mapping:
             #raise ValidationError("Setting of user vs vendor does not exist!")
             return False
 
-        return mapping.vendor_id.sudo()
+        return mapping.sudo()
 
     def _resource_to_dict(self, partner):
         return {
