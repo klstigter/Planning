@@ -120,10 +120,20 @@ class bcplanning_project(models.Model):
                 # Manage bc_jobplanningline_type
                 # if Resource then attached to contact (resource_id has a value)
                 # if Text then no contact (resource_id false)
-                resource_id = False
+                resource_id = 0
+                product_id = 0
+                text_val = ''
+                planning_line_type_odoo = False
                 planning_line_type = pl_data.get('bc_jobplanningline_type')
                 if planning_line_type == 'Resource':
                     resource_id = planningline_resid
+                    planning_line_type_odoo = 'resource'
+                if planning_line_type == 'Item':
+                    product_id = planningline_resid
+                    planning_line_type_odoo = 'item'
+                if planning_line_type == 'Text':
+                    text_val = planning_line_no
+                    planning_line_type_odoo = 'text'
 
                 # Check resource id
                 if resource_id:
@@ -133,12 +143,25 @@ class bcplanning_project(models.Model):
                         # to avoid above error:
                         # in BC the Resource card should be link with Odoo Contact. BC Field = Planning Resource Id
                         # but how to do that in BC? at the moment it no intarface in BC to link BC Resource with Odoo Contact.
+                # Check product id
+                if product_id:
+                    product = self.env['product.product'].sudo().search([('id', '=', product_id)])
+                    if not product:
+                        raise ValidationError(f'Product not found for product id {product_id}')
+                        # to avoid above error:
+                        # in BC the Item card should be link with Odoo product.product. BC Field = No.
+                        # but how to do that in BC? at the moment it no intarface in BC to link BC Item with Odoo product.product.
 
                 planningline_rec = self.env['bcplanningline'].search([('planning_line_lineno','=',planning_line_lineno), ('task_id','=',task.id)], limit=1)
                 if planningline_rec:
                     planningline_rec.planning_line_no = planning_line_no
                     planningline_rec.planning_line_desc= planning_line_desc
-                    planningline_rec.resource_id = resource_id
+                    
+                    planningline_rec.planning_line_type = planning_line_type_odoo
+                    planningline_rec.resource_id = resource_id                    
+                    planningline_rec.product_id = product_id
+                    planningline_rec.text_value = text_val
+                    
                     planningline_rec.vendor_id = planningline_vendorid if planningline_vendorid else False
                     planningline_rec.start_datetime = datetime.strptime(planningline_datetimestart, '%Y-%m-%dT%H:%M:%S') if planningline_datetimestart else False
                     planningline_rec.end_datetime = datetime.strptime(planningline_datetimeend, '%Y-%m-%dT%H:%M:%S') if planningline_datetimeend else False
@@ -147,7 +170,12 @@ class bcplanning_project(models.Model):
                         'planning_line_lineno': planning_line_lineno or 0,
                         'planning_line_no': planning_line_no or '',  # required field fallback
                         'planning_line_desc': planning_line_desc,
-                        'resource_id': resource_id,
+                        
+                        'planning_line_type': planning_line_type_odoo,
+                        'resource_id': resource_id,                    
+                        'product_id': product_id,
+                        'text_value': text_val,
+
                         'vendor_id': planningline_vendorid if planningline_vendorid else False,
                         'task_id': task.id,
                         'start_datetime': datetime.strptime(planningline_datetimestart, '%Y-%m-%dT%H:%M:%S') if planningline_datetimestart else False,
@@ -211,29 +239,90 @@ class bcplanning_line(models.Model):
     _description = 'bcplanningline'
     _rec_name = 'planning_line_no'
 
-    planning_line_lineno = fields.Integer(required=True)
-    planning_line_type = 
-    planning_line_no = fields.Char()    # BC: "Job Planning Line"."No."
-    planning_line_desc = fields.Char()  # BC: "Job Planning Line".Description   
+    planning_line_lineno = fields.Integer(required=True) # BC: "Job Planning Line"."Line No."
+    
+    #region ***** Many2one depend on selection
+    planning_line_type = fields.Selection(string="Planning Line Type",
+                                        selection=[
+                                            ('resource','Resource'),
+                                            ('item','Item'),
+                                            ('text','Text')
+                                        ], required=True) # BC: "Job Planning Line".Type
 
-    task_id = fields.Many2one(
-        comodel_name='bctask',
-        string="Task Reference",
-        required=True, ondelete='cascade', index=True, copy=False)
-    job_id = fields.Many2one(
-        comodel_name='bcproject',
-        string="Project Reference",
-        compute="_get_job_id", store=True)
-    
-    resource_id = fields.Many2one('res.partner', string='Resource', domain="[]")
-    vendor_id = fields.Many2one('res.partner', string='Vendor', domain="[]")
-    
+    resource_id = fields.Many2one(
+        comodel_name='res.partner', 
+        string='Resource',
+        ondelete='restrict',
+        index=True,
+    )
     product_id = fields.Many2one(
         comodel_name='product.product',
         string='Product',        
         ondelete='restrict',
         index=True,
     )
+    text_value = fields.Char(string='Text')
+    
+    # a computed helper to get the currently selected "target"
+    # They are not required in data entry scope, 
+    # but are useful whenever you need a single place to read a target record 
+    # (for reports, generic processing, API, templates, or to build a Reference-like behavior without changing your DB schema).
+    target_model = fields.Char(string='Target model', compute='_compute_target_model')
+    target_id = fields.Integer(string='Target id', compute='_compute_target_model')
+
+    @api.depends('planning_line_type', 'resource_id', 'product_id', 'text_value')
+    def _compute_target_model(self):
+        for rec in self:
+            rec.target_model = False
+            rec.target_id = False
+            if rec.planning_line_type == 'resource' and rec.resource_id:
+                rec.target_model = 'res.partner'
+                rec.target_id = rec.resource_id.id
+            elif rec.planning_line_type == 'item' and rec.product_id:
+                rec.target_model = 'product.product'
+                rec.target_id = rec.product_id.id
+            elif rec.planning_line_type == 'text' and rec.text_value:
+                rec.target_model = 'ir.char'  # example placeholder
+                rec.target_id = 0
+
+    @api.onchange('planning_line_type')
+    def _onchange_planning_line_type(self):
+        # clear irrelevant fields when switching type (so only the current one is used)
+        for rec in self:
+            if rec.planning_line_type != 'resource':
+                rec.resource_id = False
+            if rec.planning_line_type != 'item':
+                rec.product_id = False
+            if rec.planning_line_type != 'text':
+                rec.text_value = False
+
+    @api.constrains('planning_line_type', 'resource_id', 'product_id', 'text_value')
+    def _check_one_target_filled(self):
+        for rec in self:
+            if rec.planning_line_type == 'resource' and not rec.resource_id:
+                raise ValidationError("Resource is required when type is 'Resource'.")
+            if rec.planning_line_type == 'item' and not rec.product_id:
+                raise ValidationError("Item is required when type is 'Item'.")
+            if rec.planning_line_type == 'text' and not rec.text_value:
+                raise ValidationError("Text is required when type is 'Text'.")
+
+    #endregion of Many2one depend on selection
+    
+    planning_line_no = fields.Char()    # BC: "Job Planning Line"."No."
+    planning_line_desc = fields.Char()  # BC: "Job Planning Line".Description   
+
+    task_id = fields.Many2one(
+        comodel_name='bctask',
+        string="Task Reference",
+        required=True, ondelete='cascade', index=True, copy=False) # BC: "Job Planning Line"."Job Task No."
+
+    job_id = fields.Many2one(
+        comodel_name='bcproject',
+        string="Project Reference",
+        compute="_get_job_id", store=True) # BC: "Job Planning Line"."Job No."
+        
+    vendor_id = fields.Many2one('res.partner', string='Vendor', domain="[]")
+        
     quantity = fields.Integer(string="Quantity")
     depth = fields.Float(string="Depth")
 
