@@ -48,6 +48,21 @@ class PlanningApiController(http.Controller):
                 })
         return Response(json.dumps(vendor_recs),content_type='application/json;charset=utf-8',status=200)
 
+    @http.route('/planning/products', type='http', auth='api_key', methods=['GET'], csrf=False)
+    def getpartners(self):
+        """
+        this endpoint will access by BC
+        """
+        product_recs = []
+        products = request.env['product.product'].search([('product_tmpl_id.type','=','service'), ('active', '=', True)])
+        if products:
+            for prod in products:
+                product_recs.append({
+                    'product_id': prod.id,
+                    'product_name': prod.name,
+                })
+        return Response(json.dumps(product_recs),content_type='application/json;charset=utf-8',status=200)
+
     @http.route('/planning/contacts', type='http', auth='api_key', methods=['POST'], csrf=False)
     def getcontacts(self):    
         """

@@ -146,9 +146,19 @@
                                 <list editable="bottom">
                                     <field name="id"/>
                                     <field name="planning_line_lineno"/>
+                                    <field name="planning_line_type"/>
+                                    <!-- show/hide fields based on type using direct attributes -->
+                                    <field name="resource_id"
+                                        invisible="planning_line_type != 'resource'"
+                                        required="planning_line_type == 'resource'"/>
+                                    <field name="product_id"
+                                        invisible="planning_line_type != 'item'"
+                                        required="planning_line_type == 'item'"/>
+                                    <field name="text_value"
+                                        invisible="planning_line_type != 'text'"
+                                        required="planning_line_type == 'text'"/>
                                     <field name="planning_line_no"/>
-                                    <field name="planning_line_desc"/>
-                                    <field name="product_id"/>
+                                    <field name="planning_line_desc"/>                                    
                                     <field name="quantity"/>
                                     <field name="depth"/>
                                 </list>
@@ -170,7 +180,22 @@
                                                             <table>
                                                                 <tr><td><field name="product_id"/></td></tr>
                                                                 <tr><td><field name="planning_line_desc"/></td></tr>
-                                                                <tr><td><span>Product: </span><field name="product_id"/></td></tr>
+
+                                                                <tr><td><field name="planning_line_type"/></td></tr>
+                                                                <tr><td>
+                                                                    <group>
+                                                                        <!-- show/hide fields based on type using direct attributes -->
+                                                                        <field name="resource_id"
+                                                                            invisible="planning_line_type != 'resource'"
+                                                                            required="planning_line_type == 'resource'"/>
+                                                                        <field name="product_id"
+                                                                            invisible="planning_line_type != 'item'"
+                                                                            required="planning_line_type == 'item'"/>
+                                                                        <field name="text_value"
+                                                                            invisible="planning_line_type != 'text'"
+                                                                            required="planning_line_type == 'text'"/>
+                                                                    </group>
+                                                                </td></tr>
                                                                 <tr><td><span>Quantity: </span><field name="quantity"/></td></tr>
                                                                 <tr><td><span>Depth: </span><field name="depth"/></td></tr>
                                                             </table>
@@ -238,10 +263,20 @@
         <field name="model">bcplanningline</field>
         <field name="arch" type="xml">
             <list>
-                <field name="planning_line_lineno"/>
+                <field name="planning_line_lineno"/>                
+                <field name="planning_line_type"/>
+                <!-- show/hide fields based on type using direct attributes -->
+                <field name="resource_id"
+                    invisible="planning_line_type != 'resource'"
+                    required="planning_line_type == 'resource'"/>
+                <field name="product_id"
+                    invisible="planning_line_type != 'item'"
+                    required="planning_line_type == 'item'"/>
+                <field name="text_value"
+                    invisible="planning_line_type != 'text'"
+                    required="planning_line_type == 'text'"/>
                 <field name="planning_line_no"/>
                 <field name="planning_line_desc"/>
-                <field name="product_id"/>
                 <field name="job_id"/>
                 <field name="task_id"/>
             </list>
@@ -256,10 +291,19 @@
             <form>
                 <group>
                     <field name="planning_line_lineno"/>
+                    <field name="planning_line_type"/>
+                    <!-- show/hide fields based on type using direct attributes -->
+                    <field name="resource_id"
+                        invisible="planning_line_type != 'resource'"
+                        required="planning_line_type == 'resource'"/>
+                    <field name="product_id"
+                        invisible="planning_line_type != 'item'"
+                        required="planning_line_type == 'item'"/>
+                    <field name="text_value"
+                        invisible="planning_line_type != 'text'"
+                        required="planning_line_type == 'text'"/>
                     <field name="planning_line_no"/>
                     <field name="planning_line_desc"/>
-                    <field name="resource_id"/>
-                    <field name="product_id"/> 
                     <field name="quantity"/>
                     <field name="depth"/>
                     <field name="job_id"/>
@@ -279,10 +323,22 @@
                     <t t-name="card">
                         <div class="oe_kanban_card">
                             <div><field name="planning_line_lineno"/></div>
+                                                        
+                            <div><field name="planning_line_type"/></div>
+                            <div>
+                                <!-- show/hide fields based on type using direct attributes -->
+                                <field name="resource_id"
+                                    invisible="planning_line_type != 'resource'"
+                                    required="planning_line_type == 'resource'"/>
+                                <field name="product_id"
+                                    invisible="planning_line_type != 'item'"
+                                    required="planning_line_type == 'item'"/>
+                                <field name="text_value"
+                                    invisible="planning_line_type != 'text'"
+                                    required="planning_line_type == 'text'"/>
+                            </div>
                             <div><field name="planning_line_no"/></div>
                             <div><strong><field name="planning_line_desc"/></strong></div>
-                            <div><field name="resource_id"/></div>
-                            <div><field name="product_id"/></div>
                             <div><field name="quantity"/></div>
                             <div><field name="depth"/></div>
                             <div>Task: <field name="task_id"/></div>
@@ -304,7 +360,7 @@
         <field name="name">Tasks</field>
         <field name="res_model">bctask</field>
         <field name="view_mode">list,kanban,form</field>
-        <field name="domain">[('data_owner_id', '=', uid)]</field>
+        <!-- <field name="domain">[('data_owner_id', '=', uid)]</field> -->
     </record>
     <record id="action_bcplanningline" model="ir.actions.act_window">
         <field name="name">Planning Lines</field>

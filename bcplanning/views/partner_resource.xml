@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
+    <!-- Resources list template with Email column and modal including email input -->
     <template id="web_partner_resource_template">
         <t t-call="website.layout">
             <div id="task_wrap" class="oe_structure">
@@ -13,7 +14,7 @@
 
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <button id="btn-add-resource" class="btn btn-primary">
-                            <i class="fa fa-plus me-1"></i> Add Resource
+                            <i class="fa fa-plus me-1" aria-hidden="true"></i> Add Resource
                         </button>
                         <div id="resources-feedback" class="text-danger small"></div>
                     </div>
@@ -21,27 +22,31 @@
                     <div class="table-responsive">
                         <table id="resources-table" class="table table-bordered align-middle">
                             <colgroup>
-                                <col style="width: 15%"/>
-                                <col style="width: 55%"/>
-                                <col style="width: 30%"/>
+                                <col style="width: 8%"/>
+                                <col style="width: 36%"/>
+                                <col style="width: 26%"/>
+                                <col style="width: 10%"/>
+                                <col style="width: 20%"/>
                             </colgroup>
                             <thead class="table-light">
                                 <tr>
                                     <th>ID</th>
                                     <th>Name</th>
+                                    <th>Email</th>
+                                    <th class="text-center">Portal</th>
                                     <th class="text-center">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="resources-tbody">
                                 <tr data-empty="true">
-                                    <td colspan="3" class="text-center text-muted">Loading...</td>
+                                    <td colspan="5" class="text-center text-muted">Loading...</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
 
-                <!-- Modal for Create/Update -->
+                <!-- Modal for Create/Update with Email input -->
                 <div class="modal fade" id="resourceModal" tabindex="-1" aria-labelledby="resourceModalLabel" aria-hidden="true">
                     <div class="modal-dialog">
                         <div class="modal-content">
@@ -56,6 +61,10 @@
                                         <label for="resource-name" class="form-label">Name</label>
                                         <input type="text" id="resource-name" class="form-control" placeholder="Enter resource name" required="required"/>
                                     </div>
+                                    <div class="mb-3">
+                                        <label for="resource-email" class="form-label">Email</label>
+                                        <input type="email" id="resource-email" class="form-control" placeholder="Enter email" required="required"/>
+                                    </div>
                                     <div id="resource-form-feedback" class="text-danger small"></div>
                                 </div>
                                 <div class="modal-footer">
@@ -68,6 +77,12 @@
                 </div>
 
             </div>
+
+            <style>
+                .portal-indicator .fa { font-size: 1.1rem; vertical-align: middle; }
+                .portal-indicator .badge { padding: 0.35rem 0.45rem; font-size: 0.9rem; }
+                .resource-action-dropdown .dropdown-toggle { padding: .25rem .5rem; line-height: 1; }
+            </style>
         </t>
     </template>
 </odoo>

@@ -34,6 +34,7 @@
         'views/partner_resource.xml',
         'views/web_partner_no_records_template.xml',
         'views/web_task_template_overlay.xml',
+        'views/partner_bor.xml',
     ],
     'assets': {
         'web.assets_frontend': [            
