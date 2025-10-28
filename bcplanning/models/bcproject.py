@@ -212,8 +212,9 @@ class bcplanning_line(models.Model):
     _rec_name = 'planning_line_no'
 
     planning_line_lineno = fields.Integer(required=True)
-    planning_line_no = fields.Char()
-    planning_line_desc = fields.Char()    
+    planning_line_type = 
+    planning_line_no = fields.Char()    # BC: "Job Planning Line"."No."
+    planning_line_desc = fields.Char()  # BC: "Job Planning Line".Description   
 
     task_id = fields.Many2one(
         comodel_name='bctask',
