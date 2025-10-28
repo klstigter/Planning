@@ -16,17 +16,11 @@ class bcplanning_project(models.Model):
         inverse_name='job_id',
         string="Task Lines",
         copy=True, bypass_search_access=True)
-    # optional: you can keep task_line_filtered, but it's no longer required for the view/count
-    task_line_filtered = fields.One2many(
-        'bctask', 'job_id', string='My Task Lines', compute='_compute_task_line_filtered'
-    )
+    
     number_of_tasks = fields.Integer(
         string="Number of Tasks",
         compute="_get_numberoftasks", store=False)
-    number_of_tasks_per_user = fields.Integer(
-        string="Number of Tasks (User Owner)",
-        compute="_get_numberoftasks_user", store=False)
-
+    
     @api.constrains('job_no')
     def _check_job_no_unique(self):
         for record in self:
@@ -36,24 +30,12 @@ class bcplanning_project(models.Model):
             ], limit=1)
             if existing:
                 raise ValidationError('Job No must be unique!')
-
-    @api.depends('task_line')
-    def _compute_task_line_filtered(self):
-        current_user_id = self.env.uid
-        for record in self:
-            record.task_line_filtered = record.task_line.filtered(lambda t: t.data_owner_id.id == current_user_id)
             
     def _get_numberoftasks(self):
         for rec in self:
             rec.number_of_tasks = len(rec.task_line)
 
-    # NEW: compute number_of_tasks_per_user directly from task_line to avoid relying on a separate computed one2many
-    @api.depends('task_line.data_owner_id')
-    def _get_numberoftasks_user(self):
-        current_user_id = self.env.uid
-        for rec in self:
-            rec.number_of_tasks_per_user = len(rec.task_line.filtered(lambda t: t.data_owner_id.id == current_user_id))
-
+    
     def projectcreationfrombc(self, posted_data):
         if isinstance(posted_data, str):
             posted_data = json.loads(posted_data)
@@ -75,10 +57,8 @@ class bcplanning_project(models.Model):
         for task_data in tasks:
             task_no = task_data.get('bc_task_no')
             task_desc = task_data.get('bc_task_desc')
-            task_planning_id = task_data.get('planning_user_id')
             task_date = task_data.get('bc_task_date')
-            task_address = task_data.get('bc_task_address')
-            
+            task_address = task_data.get('bc_task_address')            
             planninglines = task_data.get('bc_planninglines', [])
 
             task = self.env['bctask'].sudo().search([('task_no','=',task_no), ('job_id','=',job_rec.id)], limit=1) 
@@ -86,16 +66,14 @@ class bcplanning_project(models.Model):
             # If your current user doesn't have permission to read the record, 
             # search() will return an empty recordset even if it exists in the database.
             if task:
-                task.task_desc = task_desc                
-                task.data_owner_id = task_planning_id 
+                task.task_desc = task_desc                 
                 task.task_date = task_date
                 task.task_address = task_address
             else:
                 task = self.env['bctask'].create({
                     'task_no': task_no,
                     'job_id': job_rec.id,
-                    'task_desc': task_desc,
-                    'data_owner_id': task_planning_id,                    
+                    'task_desc': task_desc,                    
                     'task_date': datetime.strptime(task_date, '%Y-%m-%d') if task_date else False,
                     'task_address': task_address,
                 })
@@ -211,7 +189,6 @@ class bcplanning_task(models.Model):
     number_of_lines = fields.Integer(
         string="Planning Lines",
         compute="_get_numberofplanninglines", store=False)    
-    data_owner_id = fields.Many2one('res.users', string='Data Owner', domain="[]")
 
     @api.constrains('task_no', 'job_id')
     def _check_job_no_unique(self):
@@ -229,10 +206,6 @@ class bcplanning_task(models.Model):
         for rec in self:
             rec.number_of_lines = len(rec.planning_line)
 
-    # @api.model
-    # def _search(self, domain, *args, **kwargs):
-    #     domain = Domain(domain) & Domain('data_owner_id', '=', self.env.user.id)
-    #     return super()._search(domain, *args, **kwargs)
 
 class bcplanning_line(models.Model):
     _name = 'bcplanningline'
