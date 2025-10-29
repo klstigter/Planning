@@ -58,3 +58,17 @@ class bcplanning_utils(models.Model):
             return True
         else:
             return False
+
+    def update_bc_planningline_item(self, payload=None):
+        env_name = self.env['ir.config_parameter'].sudo().get_param('bcplanning.setting.env.name')
+        if not env_name:
+            raise ValidationError("BC Environment name not found!")
+        company_id = self.env['ir.config_parameter'].sudo().get_param('bcplanning.setting.company.id')
+        if not company_id:
+            raise ValidationError("BC Company Id not found!")
+        url = f'https://api.businesscentral.dynamics.com/v2.0/{env_name}/api/ddsia/planning/v1.0/companies({company_id})/jobPlanningLinebors'
+        response = self.post_request(url, payload)
+        if response.status_code in (200, 201):
+            return True
+        else:
+            return False
