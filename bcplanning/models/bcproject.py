@@ -206,6 +206,20 @@ class bcplanning_task(models.Model):
         for rec in self:
             rec.number_of_lines = len(rec.planning_line)
 
+    earliest_start_datetime = fields.Datetime(
+        string='Earliest Start',
+        compute='_compute_earliest_start',
+        store=True,
+    )
+
+    @api.depends('planning_line.start_datetime')
+    def _compute_earliest_start(self):
+        for rec in self:
+            # collect non-false datetimes
+            dates = rec.planning_line.mapped('start_datetime')
+            dates = [d for d in dates if d]
+            rec.earliest_start_datetime = min(dates) if dates else False
+
 
 class bcplanning_line(models.Model):
     _name = 'bcplanningline'
