@@ -2,6 +2,8 @@ from odoo import models
 from odoo.exceptions import ValidationError
 import requests
 import json
+import logging
+_logger = logging.getLogger(__name__)
 
 class bcplanning_utils(models.Model):
     _name = 'bcplanning_utils'
@@ -60,6 +62,9 @@ class bcplanning_utils(models.Model):
             return False
 
     def update_bc_planningline_item(self, payload=None):
+        
+        _logger.exception("payload for BC: %s", payload)
+
         env_name = self.env['ir.config_parameter'].sudo().get_param('bcplanning.setting.env.name')
         if not env_name:
             raise ValidationError("BC Environment name not found!")
