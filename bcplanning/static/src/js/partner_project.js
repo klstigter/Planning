@@ -1,5 +1,6 @@
 /** @odoo-module **/
-import publicWidget from "web.public.widget";
+import publicWidget from "@web/legacy/js/public/public_widget";
+// import publicWidget from "web.public.widget";
 
 publicWidget.registry.BCPlanningProject = publicWidget.Widget.extend({
     selector: "#project_wrap",

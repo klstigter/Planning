@@ -1,9 +1,8 @@
 from odoo import http
 from odoo.http import request
-from odoo.exceptions import AccessDenied
+from odoo.exceptions import AccessDenied, ValidationError
 import json
 from odoo.http import Response
-from odoo.exceptions import ValidationError
 import time
 from datetime import datetime
 import logging
@@ -11,6 +10,7 @@ _logger = logging.getLogger(__name__)
 
 import psycopg2
 from psycopg2 import errorcodes
+
 
 class BorApiController(http.Controller):
 
@@ -82,7 +82,7 @@ class BorApiController(http.Controller):
             pl_domain = [
                 ('task_id.job_id.id', '=', project.id),
                 ('vendor_id', '=', partner_id),
-                ('resource_id', '=', user.partner_id.id) # filter planning line per resource
+                ('resource_id', '=', user.partner_id.id)  # filter planning line per resource
             ]
             if date_filter:
                 pl_domain += [('start_datetime', '>=', start_dt_str), ('start_datetime', '<=', end_dt_str)]
@@ -96,9 +96,9 @@ class BorApiController(http.Controller):
         else:
             # all planninglines for this vendor (maybe filtered by date)
             pl_domain = [
-                    ('vendor_id', '=', partner_id),
-                    ('resource_id', '=', user.partner_id.id) # filter planning line per resource
-                ]
+                ('vendor_id', '=', partner_id),
+                ('resource_id', '=', user.partner_id.id)  # filter planning line per resource
+            ]
             if date_filter:
                 pl_domain += [('start_datetime', '>=', start_dt_str), ('start_datetime', '<=', end_dt_str)]
 
@@ -133,7 +133,7 @@ class BorApiController(http.Controller):
             pl_domain = [
                 ('task_id', '=', t.id),
                 ('vendor_id', '=', partner_id),
-                ('resource_id', '=', user.partner_id.id), # filter planning line per resource
+                ('resource_id', '=', user.partner_id.id),  # filter planning line per resource
             ]
             if date_filter:
                 pl_domain += [('start_datetime', '>=', start_dt_str), ('start_datetime', '<=', end_dt_str)]
@@ -154,7 +154,7 @@ class BorApiController(http.Controller):
                         'pl_depth': pl.depth,
                     })
 
-                # Compute earliest start for this set of planning lines (when date_filter is applied, earliest among filtered lines)                
+                # Compute earliest start for this set of planning lines (when date_filter is applied, earliest among filtered lines)
                 starts = [pl.start_datetime for pl in planninglines if pl.start_datetime]
                 if starts:
                     earliest_start = min(starts)
@@ -173,7 +173,7 @@ class BorApiController(http.Controller):
 
         # Products
         product_data = []
-        products = request.env['product.product'].sudo().search([('product_tmpl_id.type','=','service'), ('active', '=', True)])
+        products = request.env['product.product'].sudo().search([('product_tmpl_id.type', '=', 'service'), ('active', '=', True)])
         if products:
             for prod in products:
                 product_data.append({
@@ -195,12 +195,36 @@ class BorApiController(http.Controller):
     @http.route('/planningline/bor/save', type='jsonrpc', auth='user', methods=['POST'])
     def save_planningline_bor(self, planningline_id, start_datetime=None, end_datetime=None, product_id=None, qty=None, depth=None):
         """
-        Minimal, safe save:
-        - Parse inputs, keep old values.
-        - Call external BC update inside try/except to prevent 500.
-        - Only write Odoo fields if BC call returns success (True).
-        - Return structured JSON for frontend to restore old values on failure.
+        Save planning line coming from BOR page.
+        This method is tolerant about incoming datetime strings: supports with or without seconds,
+        supports 'T' or space separation. It returns old_* and new_* values to let frontend restore or update UI.
+        It uses the existing '/planningline/bor/save' route (keeps your route & function name).
         """
+
+        def _parse_datetime_lenient(value):
+            if not value:
+                return False
+            # Try common patterns
+            fmts = (
+                '%Y-%m-%dT%H:%M:%S',
+                '%Y-%m-%dT%H:%M',
+                '%Y-%m-%d %H:%M:%S',
+                '%Y-%m-%d %H:%M',
+            )
+            for f in fmts:
+                try:
+                    return datetime.strptime(value, f)
+                except (ValueError, TypeError):
+                    continue
+            # Last attempt: strip trailing :00 (seconds) and try without seconds
+            try:
+                if isinstance(value, str) and value.endswith(':00'):
+                    trimmed = value[:-3]
+                    return datetime.strptime(trimmed, '%Y-%m-%dT%H:%M')
+            except Exception:
+                pass
+            raise ValidationError(f'Invalid datetime: {value}')
+
         # Basic validation
         try:
             pl_id = int(planningline_id)
@@ -211,48 +235,64 @@ class BorApiController(http.Controller):
         if not line.exists():
             return {'result': 'Planning line not found', 'error': True}
 
+        # Old values for fallback
         old_start = line.start_datetime
         old_end = line.end_datetime
         old_product_id = line.product_id.id if line.product_id else None
-        old_qty = line.quantity if line.quantity else 0
-        old_depth = line.depth if line.depth else 0
+        old_qty = line.quantity if line.quantity is not None else 0
+        old_depth = line.depth if line.depth is not None else 0
 
-        # Parse new datetimes (expecting 'YYYY-MM-DDTHH:MM' from the client)
+        # Parse incoming datetimes leniently
         try:
-            new_start = old_start
-            new_end = old_end
-            if start_datetime:
-                new_start = datetime.strptime(start_datetime, '%Y-%m-%dT%H:%M')
-            if end_datetime:
-                new_end = datetime.strptime(end_datetime, '%Y-%m-%dT%H:%M')
-        except Exception as e:
+            parsed_start = _parse_datetime_lenient(start_datetime) if start_datetime is not None else False
+            parsed_end = _parse_datetime_lenient(end_datetime) if end_datetime is not None else False
+        except ValidationError as e:
             return {
-                'result': f'Invalid datetime: {e}',
-                'old_start_datetime': old_start.strftime('%Y-%m-%dT%H:%M') if old_start else '',
-                'old_end_datetime': old_end.strftime('%Y-%m-%dT%H:%M') if old_end else '',
+                'result': str(e),
+                'old_start_datetime': old_start.strftime('%Y-%m-%dT%H:%M:%S') if old_start else '',
+                'old_end_datetime': old_end.strftime('%Y-%m-%dT%H:%M:%S') if old_end else '',
                 'old_product_id': old_product_id,
                 'old_qty': old_qty,
                 'old_depth': old_depth,
                 'error': True,
             }
 
-        # Prepare payload for BC (include seconds)
-        sd = f'{start_datetime}:00' if start_datetime else (line.start_datetime and line.start_datetime.strftime('%Y-%m-%dT%H:%M:%S'))
-        ed = f'{end_datetime}:00' if end_datetime else (line.end_datetime and line.end_datetime.strftime('%Y-%m-%dT%H:%M:%S'))
+        # Prepare BC payload datetimes (ensure seconds present)
+        def _ensure_seconds(ts):
+            if not ts:
+                return ''
+            # If string already contains seconds (three parts after split(':')), keep it.
+            try:
+                if isinstance(ts, str):
+                    if len(ts.split('T')[-1].split(':')) == 3:
+                        return ts
+                    # if format is YYYY-MM-DDTHH:MM, append :00
+                    return f"{ts}:00"
+                # if ts is datetime object, format with seconds
+                if isinstance(ts, datetime):
+                    return ts.strftime('%Y-%m-%dT%H:%M:%S')
+            except Exception:
+                pass
+            return ts
 
+        sd = _ensure_seconds(start_datetime) if start_datetime else (line.start_datetime.strftime('%Y-%m-%dT%H:%M:%S') if line.start_datetime else '')
+        ed = _ensure_seconds(end_datetime) if end_datetime else (line.end_datetime.strftime('%Y-%m-%dT%H:%M:%S') if line.end_datetime else '')
+
+        # Resolve product object safely
         product = False
-        if product_id:
+        if product_id not in (None, '', False):
             try:
                 product = request.env['product.product'].sudo().browse(int(product_id))
             except Exception:
                 product = False
 
+        # Build payload for BC call (same fields you used)
         payload = {
             "jobNo": line.task_id.job_id.job_no,
             "jobTaskNo": line.task_id.task_no,
             "lineNo": str(line.planning_line_lineno),
             "type": "Item" if product else "Text",
-            "no": product.name if product else 'VACANT',
+            "no": product.name if product else (line.planning_line_no or 'VACANT'),
             "planning_product_id": f"{product.id if product else 0}",
             "planning_vendor_id": f"{line.vendor_id.sudo().id if line.vendor_id.sudo() else 0}",
             "startDateTime": sd,
@@ -269,49 +309,70 @@ class BorApiController(http.Controller):
             _logger.exception("External BC update failed for planningline %s", pl_id)
             return {
                 'result': f'External update failed: {str(e)}',
-                'old_start_datetime': old_start.strftime('%Y-%m-%dT%H:%M') if old_start else '',
-                'old_end_datetime': old_end.strftime('%Y-%m-%dT%H:%M') if old_end else '',
+                'old_start_datetime': old_start.strftime('%Y-%m-%dT%H:%M:%S') if old_start else '',
+                'old_end_datetime': old_end.strftime('%Y-%m-%dT%H:%M:%S') if old_end else '',
                 'old_product_id': old_product_id,
                 'old_qty': old_qty,
                 'old_depth': old_depth,
                 'error': True,
             }
 
-        # Handle result
+        # Handle BC response
         if success is True:
-            # Only write Odoo fields on BC success
+            # Write only if BC succeeded
             try:
-                if start_datetime:
-                    line.sudo().write({'start_datetime': new_start})
-                if end_datetime:
-                    line.sudo().write({'end_datetime': new_end})
+                write_vals = {}
+                if parsed_start is not False:
+                    write_vals['start_datetime'] = parsed_start
+                if parsed_end is not False:
+                    write_vals['end_datetime'] = parsed_end
                 if product_id is not None and product_id != '':
-                    line.sudo().write({'product_id': int(product_id)})
+                    try:
+                        write_vals['product_id'] = int(product_id)
+                    except Exception:
+                        write_vals['product_id'] = False
                 elif product_id == "" or product_id is None:
-                    line.sudo().write({'product_id': False})
-                if qty:
-                    line.sudo().write({'quantity': qty})
-                if depth:
-                    line.sudo().write({'depth': depth})
+                    write_vals['product_id'] = False
+                if qty not in (None, '', False):
+                    try:
+                        write_vals['quantity'] = float(qty)
+                    except Exception:
+                        write_vals['quantity'] = qty
+                if depth not in (None, '', False):
+                    try:
+                        write_vals['depth'] = float(depth)
+                    except Exception:
+                        write_vals['depth'] = depth
+
+                if write_vals:
+                    line.sudo().write(write_vals)
             except Exception as e:
                 _logger.exception("Failed to write bcplanningline %s after BC success: %s", pl_id, e)
-                # If local write fails, return an error but indicate BC succeeded
                 return {
                     'result': f'Updated in BC but local save failed: {str(e)}',
-                    'old_start_datetime': old_start.strftime('%Y-%m-%dT%H:%M') if old_start else '',
-                    'old_end_datetime': old_end.strftime('%Y-%m-%dT%H:%M') if old_end else '',
+                    'old_start_datetime': old_start.strftime('%Y-%m-%dT%H:%M:%S') if old_start else '',
+                    'old_end_datetime': old_end.strftime('%Y-%m-%dT%H:%M:%S') if old_end else '',
                     'old_product_id': old_product_id,
                     'old_qty': old_qty,
                     'old_depth': old_depth,
                     'error': True,
                 }
-            return {'result': 'updated'}
+
+            # Prepare canonical new values for the frontend
+            new_vals = {
+                'new_start_datetime': line.start_datetime.strftime('%Y-%m-%dT%H:%M:%S') if line.start_datetime else '',
+                'new_end_datetime': line.end_datetime.strftime('%Y-%m-%dT%H:%M:%S') if line.end_datetime else '',
+                'new_pl_product_id': line.product_id.id if line.product_id else False,
+                'new_pl_qty': line.quantity,
+                'new_pl_depth': line.depth,
+            }
+            return {'result': 'updated', **new_vals}
         else:
             # BC returned False (failure) — return old values so frontend can restore
             return {
                 'result': 'Update to BC failed',
-                'old_start_datetime': old_start.strftime('%Y-%m-%dT%H:%M') if old_start else '',
-                'old_end_datetime': old_end.strftime('%Y-%m-%dT%H:%M') if old_end else '',
+                'old_start_datetime': old_start.strftime('%Y-%m-%dT%H:%M:%S') if old_start else '',
+                'old_end_datetime': old_end.strftime('%Y-%m-%dT%H:%M:%S') if old_end else '',
                 'old_product_id': old_product_id,
                 'old_qty': old_qty,
                 'old_depth': old_depth,

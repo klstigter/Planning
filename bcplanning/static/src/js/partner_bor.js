@@ -39,7 +39,6 @@ publicWidget.registry.Bor = publicWidget.Widget.extend({
         }
     },
 
-    // helper: overlay show/hide
     _showOverlay: function () {
         var el = document.getElementById('bcplanning-overlay');
         if (el) { el.classList.remove('d-none'); }
@@ -49,7 +48,6 @@ publicWidget.registry.Bor = publicWidget.Widget.extend({
         if (el) { el.classList.add('d-none'); }
     },
 
-    // helper: enable/disable controls in the current row/card
     _setContextButtonsDisabled: function ($contextEl, disabled) {
         try {
             $contextEl.find('button, input, select').prop('disabled', !!disabled);
@@ -179,15 +177,53 @@ publicWidget.registry.Bor = publicWidget.Widget.extend({
         return { type: null, el: null };
     },
 
+    // Build full datetime string "YYYY-MM-DDTHH:MM:SS" from time-only input and stored date metadata.
+    _buildDatetimeFromTime: function ($contextEl, viewSelector, timeValue, defaultDateFallback) {
+        // If empty or falsy, return null (we'll send null to indicate no change)
+        if (!timeValue) { return null; }
+
+        // Prefer data-date attribute on the view element
+        let $view = $contextEl.find(viewSelector);
+        let datePart = $view.attr('data-start-date') || $view.attr('data-end-date') || '';
+        // fallback to full-datetime attribute and extract date
+        if (!datePart) {
+            let full = $view.attr('data-start-datetime') || $view.attr('data-end-datetime') || '';
+            if (full && full.indexOf('T') !== -1) {
+                datePart = full.split('T')[0];
+            } else if (full && full.indexOf(' ') !== -1) {
+                datePart = full.split(' ')[0];
+            }
+        }
+        // fallback to page-selected date (if page filtered by date)
+        if (!datePart && defaultDateFallback) {
+            datePart = defaultDateFallback;
+        }
+        // final fallback: today
+        if (!datePart) {
+            const d = new Date();
+            datePart = d.toISOString().slice(0,10);
+        }
+        // timeValue is expected "HH:MM" (24h). Append seconds to send canonical "HH:MM:SS"
+        // Ensure timeValue is two-component "HH:MM"
+        const timeParts = (timeValue || '').split(':');
+        let hhmm = timeValue;
+        if (timeParts.length >= 2) {
+            hhmm = `${String(timeParts[0]).padStart(2,'0')}:${String(timeParts[1]).padStart(2,'0')}`;
+        } else {
+            // if user entered single number, normalize to HH:00
+            hhmm = `${String(timeValue).padStart(2,'0')}:00`;
+        }
+        // Return canonical ISO-like datetime with seconds
+        return `${datePart}T${hhmm}:00`;
+    },
+
     _onEditRow: function (ev) {
         const $btn = $(ev.currentTarget);
         const ctx = this._getContextElement($btn);
         if (ctx.type === 'row') {
             const $tr = ctx.el;
             $tr.attr('data-editing', '1');
-            // hide view elements
             $tr.find('.start-datetime-view, .end-datetime-view, .product-view, .qty-view, .depth-view').addClass('d-none');
-            // show input/select elements
             $tr.find('.start-datetime-input, .end-datetime-input, .product-select, .qty-input, .depth-input').removeClass('d-none');
             $tr.find('.edit-row').addClass('d-none');
             $tr.find('.save-row, .cancel-row').removeClass('d-none');
@@ -209,7 +245,6 @@ publicWidget.registry.Bor = publicWidget.Widget.extend({
         if (ctx.type === 'row') {
             const $tr = ctx.el;
             $tr.attr('data-editing', '0');
-            // restore original values from the attribute "value" set on render
             $tr.find('.start-datetime-input').val($tr.find('.start-datetime-input').attr('value'));
             $tr.find('.end-datetime-input').val($tr.find('.end-datetime-input').attr('value'));
             $tr.find('.product-select').val($tr.find('.product-select').find('option[selected]').val() || '');
@@ -250,7 +285,7 @@ publicWidget.registry.Bor = publicWidget.Widget.extend({
             planninglineId = $contextEl.find('.data_planningline_id').text().trim();
             startTime = $contextEl.find('.start-datetime-input').val(); // "HH:MM"
             endTime = $contextEl.find('.end-datetime-input').val();     // "HH:MM"
-            resourceId = $contextEl.find('.resource-select').val(); // if you still use resource-select elsewhere
+            resourceId = $contextEl.find('.resource-select').val(); // if used elsewhere
             productId = $contextEl.find('.product-select').val();
             qtyVal = $contextEl.find('.qty-input').val();
             depthVal = $contextEl.find('.depth-input').val();
@@ -273,36 +308,12 @@ publicWidget.registry.Bor = publicWidget.Widget.extend({
             return;
         }
 
-        // Build full datetime strings from date attribute + time
-        const buildDatetime = function ($contextEl, viewSelector, timeValue, defaultDateFallback) {
-            if (!timeValue) { return false; }
-            // try to read date attribute saved on the view span
-            let datePart = $contextEl.find(viewSelector).attr('data-start-date') || $contextEl.find(viewSelector).attr('data-end-date') || '';
-            if (!datePart) {
-                // fallback: check the full-datetime attr and extract date
-                let full = $contextEl.find(viewSelector).attr('data-start-datetime') || $contextEl.find(viewSelector).attr('data-end-datetime') || '';
-                if (full && full.indexOf('T') !== -1) {
-                    datePart = full.split('T')[0];
-                }
-            }
-            if (!datePart && defaultDateFallback) {
-                datePart = defaultDateFallback;
-            }
-            if (!datePart) {
-                // final fallback to today's date
-                const d = new Date();
-                datePart = d.toISOString().slice(0,10);
-            }
-            // Ensure seconds component
-            return datePart + 'T' + timeValue + ':00';
-        };
-
-        // Use selected-date-label as fallback date (if page was filtered by date)
+        // Build full datetime strings (ISO-like) using date metadata + time-only inputs.
         const pageDateText = (document.querySelector('#selected-date-label') && document.querySelector('#selected-date-label').textContent) ? document.querySelector('#selected-date-label').textContent.trim() : '';
         const fallbackDate = (pageDateText && pageDateText !== 'All dates') ? pageDateText : null;
 
-        const startDatetime = buildDatetime($contextEl, '.start-datetime-view', startTime, fallbackDate);
-        const endDatetime = buildDatetime($contextEl, '.end-datetime-view', endTime, fallbackDate);
+        const startDatetime = this._buildDatetimeFromTime($contextEl, '.start-datetime-view', startTime, fallbackDate); // "YYYY-MM-DDTHH:MM:SS" or null
+        const endDatetime = this._buildDatetimeFromTime($contextEl, '.end-datetime-view', endTime, fallbackDate);     // "YYYY-MM-DDTHH:MM:SS" or null
 
         // show spinner and disable controls to prevent multi-click
         this._showOverlay();
@@ -310,14 +321,15 @@ publicWidget.registry.Bor = publicWidget.Widget.extend({
         $btn.prop('disabled', true);
 
         const self = this;
+        // NOTE: call the controller route you told me to keep: '/planningline/bor/save'
         rpc('/planningline/bor/save', {
             planningline_id: planninglineId,
+            // send datetime strings or null (controller will be tolerant)
             start_datetime: startDatetime,
             end_datetime: endDatetime,
-            resource_id: resourceId,
-            pl_product_id: productId,
-            pl_qty: qtyVal,
-            pl_depth: depthVal,
+            product_id: productId,
+            qty: qtyVal,
+            depth: depthVal,
         }).then(function(result) {
             if (result && result.result === 'updated') {
                 // update UI: times (as before)
@@ -350,10 +362,8 @@ publicWidget.registry.Bor = publicWidget.Widget.extend({
 
                 // update product, qty, depth UI
                 try {
-                    // product: if server returned canonical product id or we have local productId
                     const newProd = (result && result.new_pl_product_id) ? result.new_pl_product_id : productId;
                     if (newProd !== undefined && newProd !== null) {
-                        // find option text
                         const optText = $contextEl.find('.product-select option[value="' + newProd + '"]').text() || '-';
                         $contextEl.find('.product-view').text(optText);
                         $contextEl.find('.product-select').val(newProd);
@@ -384,11 +394,10 @@ publicWidget.registry.Bor = publicWidget.Widget.extend({
                 return;
             }
 
-            // failure path: controller returned a business failure (didn't update BC)
+            // failure path...
             const msg = (result && result.result) ? result.result : 'Update failed';
             alert(msg);
 
-            // restore values returned by server (if provided); otherwise let cancel handler restore from attr(value)
             try {
                 if (result && result.old_start_datetime !== undefined) {
                     let old = result.old_start_datetime || '';
@@ -399,7 +408,7 @@ publicWidget.registry.Bor = publicWidget.Widget.extend({
                         dateOnly = parts[0];
                         timeOnly = (parts[1] || '').slice(0,5);
                     } else {
-                        timeOnly = old.slice(0,5); // fallback
+                        timeOnly = old.slice(0,5);
                     }
                     $contextEl.find('.start-datetime-input').val(timeOnly);
                     $contextEl.find('.start-datetime-input').attr('value', timeOnly);
@@ -435,7 +444,6 @@ publicWidget.registry.Bor = publicWidget.Widget.extend({
                     $contextEl.find('.product-select').val(oldProd);
                     $contextEl.find('.product-view').text(optText);
                 } else {
-                    // fallback restore from attr(value) or current DOM values
                     $contextEl.find('.product-select').val($contextEl.find('.product-select').find('option[selected]').val() || '');
                 }
 
@@ -459,7 +467,6 @@ publicWidget.registry.Bor = publicWidget.Widget.extend({
                 console.error('Error restoring values after failed save', e);
             }
 
-            // execute cancel trigger to hide inputs and restore UI state
             try {
                 $contextEl.find('.cancel-row').trigger('click');
             } catch (e) {
@@ -467,7 +474,6 @@ publicWidget.registry.Bor = publicWidget.Widget.extend({
             }
         }).catch(function (err) {
             console.error('RPC error (network or server):', err);
-            // show meaningful server message if present
             var userMsg = 'Update failed (network or permissions).';
             try {
                 if (err && err.data && err.data.message) {
@@ -477,15 +483,12 @@ publicWidget.registry.Bor = publicWidget.Widget.extend({
                 }
             } catch (e) {}
             alert(userMsg);
-
-            // If we have old values from error object (unlikely), restore them; otherwise call cancel to restore
             try {
                 $contextEl.find('.cancel-row').trigger('click');
             } catch (e) {
                 console.error('Error triggering cancel after RPC error', e);
             }
         }).finally(function() {
-            // always hide spinner and re-enable controls
             try {
                 self._hideOverlay();
                 self._setContextButtonsDisabled($contextEl, false);

@@ -83,7 +83,7 @@
                                 <!-- Description row: read-only text above times -->
                                 <t t-if="row_counter == 1">
                                   <tr class="pl-desc-row" t-att-data-task-id="task['id']">
-                                    <td t-att-rowspan="pl_count*2 if pl_count else 2" class="align-top">
+                                    <td t-att-rowspan="(pl_count*2) if pl_count else 2" class="align-top">
                                       <table>
                                         <tr><td><span class="text-muted">No.</span></td><td>:</td><td><span class="fw-bold ms-1" t-esc="task['task_no']"/></td></tr>
                                         <tr><td><span class="text-muted">Prj</span></td><td>:</td><td><span class="ms-1" t-esc="task['job_no']"/></td></tr>
@@ -102,6 +102,7 @@
                                   <tr class="planningline-row" data-editing="0" t-att-data-task-id="task['id']">
                                     <td>
                                       <span class="data_planningline_id d-none"><t t-esc="pl['id']"/></span>
+
                                       <span class="start-datetime-view"
                                             t-att-data-start-date="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%d') or ''"
                                             t-att-data-start-datetime="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%dT%H:%M:%S') or ''">
@@ -121,7 +122,7 @@
                                              t-att-value="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%H:%M') or ''"/>
                                     </td>
 
-                                    <!-- Item column: view + select (select bound to products passed from controller) -->
+                                    <!-- Item column: view + select (options from products) -->
                                     <td class="d-none d-sm-table-cell">
                                       <span class="product-view">
                                         <t t-esc="dict((r['id'], r['name']) for r in products).get(pl.get('pl_product_id'), '-')"/>
@@ -130,7 +131,7 @@
                                         <option value=""> - </option>
                                         <t t-foreach="products" t-as="product">
                                           <option t-att-value="product['id']"
-                                                  t-att-selected="product['id'] == pl.get('pl_product_id') and 'selected' or False">
+                                                  t-att-selected="product['id'] == (pl.get('pl_product_id') or False) and 'selected' or False">
                                             <t t-esc="product['name']"/>
                                           </option>
                                         </t>
@@ -142,7 +143,7 @@
                                       <span class="qty-view">
                                         <t t-esc="pl.get('pl_qty') if pl.get('pl_qty') is not None else '-'"/>
                                       </span>
-                                      <input type="number" min="0" step="1" class="qty-input form-control form-control-sm d-none" 
+                                      <input type="number" min="0" step="1" class="qty-input form-control form-control-sm d-none"
                                              t-att-value="pl.get('pl_qty') if pl.get('pl_qty') is not None else ''"/>
                                     </td>
 
@@ -174,6 +175,7 @@
                                   <tr class="planningline-row" data-editing="0" t-att-data-task-id="task['id']">
                                     <td>
                                       <span class="data_planningline_id d-none"><t t-esc="pl['id']"/></span>
+
                                       <span class="start-datetime-view"
                                             t-att-data-start-date="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%d') or ''"
                                             t-att-data-start-datetime="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%dT%H:%M:%S') or ''">
@@ -201,7 +203,7 @@
                                         <option value=""> - </option>
                                         <t t-foreach="products" t-as="product">
                                           <option t-att-value="product['id']"
-                                                  t-att-selected="product['id'] == pl.get('pl_product_id') and 'selected' or False">
+                                                  t-att-selected="product['id'] == (pl.get('pl_product_id') or False) and 'selected' or False">
                                             <t t-esc="product['name']"/>
                                           </option>
                                         </t>
@@ -212,7 +214,7 @@
                                       <span class="qty-view">
                                         <t t-esc="pl.get('pl_qty') if pl.get('pl_qty') is not None else '-'"/>
                                       </span>
-                                      <input type="number" min="0" step="1" class="qty-input form-control form-control-sm d-none" 
+                                      <input type="number" min="0" step="1" class="qty-input form-control form-control-sm d-none"
                                              t-att-value="pl.get('pl_qty') if pl.get('pl_qty') is not None else ''"/>
                                     </td>
 
@@ -331,7 +333,7 @@
                                       <option value=""> - </option>
                                       <t t-foreach="products" t-as="product">
                                         <option t-att-value="product['id']"
-                                                t-att-selected="product['id'] == pl.get('pl_product_id') and 'selected' or False">
+                                                t-att-selected="product['id'] == (pl.get('pl_product_id') or False) and 'selected' or False">
                                           <t t-esc="product['name']"/>
                                         </option>
                                       </t>
