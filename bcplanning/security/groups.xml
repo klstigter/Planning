@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <!-- Portal-capable groups for website/portal menu visibility -->
+  <record id="group_bc_projects" model="res.groups">
+    <field name="name">BC: Projects portal access</field>
+    <!-- Make it a portal-group so portal users can be assigned this group -->
+    <field name="implied_ids" eval="[(4, ref('base.group_portal'))]"/>
+  </record>
+
+  <record id="group_bc_resources" model="res.groups">
+    <field name="name">BC: Resources portal access</field>
+    <field name="implied_ids" eval="[(4, ref('base.group_portal'))]"/>
+  </record>
+
+  <record id="group_bc_tasks" model="res.groups">
+    <field name="name">BC: Tasks portal access</field>
+    <field name="implied_ids" eval="[(4, ref('base.group_portal'))]"/>
+  </record>
+
+  <record id="group_bc_bor" model="res.groups">
+    <field name="name">BC: BOR portal access</field>
+    <field name="implied_ids" eval="[(4, ref('base.group_portal'))]"/>
+  </record>
+</odoo>

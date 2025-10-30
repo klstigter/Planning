@@ -42,6 +42,10 @@ class ResourceApiController(http.Controller):
 
     @http.route('/partner/resources', type='http', auth='user', website=True, methods=['GET'])
     def partner_resources(self, **kwargs):
+        user = request.env.user
+        if not user.has_group('bcplanning.group_bc_resources'):
+            return request.redirect('/')
+
         vendor = self._get_user_vendor()
         if not vendor:
             datas = {
@@ -49,6 +53,7 @@ class ResourceApiController(http.Controller):
                 'message_text': _("No vendor mapping found for your account. Please contact your administrator."),
             }
             return request.render('bcplanning.web_partner_no_records_template', datas)
+        
         return request.render('bcplanning.web_partner_resource_template', {
             'partner_id': vendor.id,
             'partner_name': vendor.name or '',

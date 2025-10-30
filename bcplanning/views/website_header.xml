@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <!--
+    Safer insertion into header using xpath="//header".
+    Shows portal links only when the logged-in portal user belongs to the corresponding groups.
+  -->
+  <template id="bcplanning_header_links" inherit_id="website.layout" priority="20">
+    <!-- insert inside the header element -->
+    <xpath expr="//header" position="inside">
+      <div id="bcplanning-portal-menu" class="container d-none d-lg-block mt-1">
+        <ul class="nav nav-pills">
+          <t t-if="request.env.user and request.env.user.has_group('bcplanning.group_bc_projects')">
+            <li class="nav-item me-2"><a class="nav-link p-1" href="/partner/projects">Projects</a></li>
+          </t>
+          <t t-if="request.env.user and request.env.user.has_group('bcplanning.group_bc_resources')">
+            <li class="nav-item me-2"><a class="nav-link p-1" href="/partner/resources">Resources</a></li>
+          </t>
+          <t t-if="request.env.user and request.env.user.has_group('bcplanning.group_bc_tasks')">
+            <li class="nav-item me-2"><a class="nav-link p-1" href="/partner/tasks">Tasks</a></li>
+          </t>
+          <t t-if="request.env.user and request.env.user.has_group('bcplanning.group_bc_bor')">
+            <li class="nav-item"><a class="nav-link p-1" href="/partner/bor">BOR</a></li>
+          </t>
+        </ul>
+      </div>
+      <!-- small CSS so the menu sits nicely; override in your theme's CSS if needed -->
+      <style>
+        #bcplanning-portal-menu .nav-link { color: #6c757d; }
+        #bcplanning-portal-menu .nav-link:hover { color: #000; }
+      </style>
+    </xpath>
+  </template>
+</odoo>

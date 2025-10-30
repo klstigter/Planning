@@ -197,6 +197,10 @@ class PlanningApiController(http.Controller):
     @http.route('/partner/projects', type='http', auth='user', website=True)
     def partner_project(self):
         user = request.env.user
+        
+        if not user.has_group('bcplanning.group_bc_projects'):
+            return request.redirect('/')
+
         # Get Vendor
         vendor = []
         if user.partner_id.parent_id:
@@ -238,6 +242,7 @@ class PlanningApiController(http.Controller):
                 'number_of_project':  number_of_project,
                 'projects': project_data,
             }
+
         return request.render('bcplanning.web_partner_project_template',datas)
 
     @http.route('/partner/tasks', type='http', auth='user', website=True)
@@ -249,6 +254,8 @@ class PlanningApiController(http.Controller):
         - Else (no date param, no no_date) -> default to today's date filter.
         """
         user = request.env.user
+        if not user.has_group('bcplanning.group_bc_tasks'):
+            return request.redirect('/')
 
         # Get Vendor from res.partner (adapt if your mapping differs)
         vendors = []
@@ -399,6 +406,7 @@ class PlanningApiController(http.Controller):
             'partner_name': vendor.name if vendor else 'No partner found.',
             'selected_date': selected_date.strftime('%Y-%m-%d') if date_filter and selected_date else '',
         }
+
         return request.render('bcplanning.web_partner_task_template', datas)
     
     # ********************* end of http group ********************************************************
