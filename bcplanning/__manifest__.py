@@ -25,6 +25,7 @@
     # always loaded
     'data': [
         'security/ir.model.access.csv',
+        'security/groups.xml',
         'views/bc_planning_views.xml',
         'views/remove_website_odoo_logo.xml',
         'views/website_menu.xml',
@@ -35,6 +36,7 @@
         'views/web_partner_no_records_template.xml',
         'views/web_task_template_overlay.xml',
         'views/partner_bor.xml',
+        'views/website_header.xml',
     ],
     'assets': {
         'web.assets_frontend': [            
@@ -43,7 +45,8 @@
             '/bcplanning/static/src/js/partner_project.js',
             '/bcplanning/static/src/js/partner_task.js',
             '/bcplanning/static/src/js/partner_bor.js',
-            '/bcplanning/static/src/js/resources.js',            
+            '/bcplanning/static/src/js/resources.js',      
+            '/bcplanning/static/src/js/portal_mobile_menu.js',      
         ],
     },
     # only loaded in demonstration mode

@@ -23,6 +23,8 @@ class BorApiController(http.Controller):
         - Else (no date param, no no_date) -> default to today's date filter.
         """
         user = request.env.user
+        if not user.has_group('bcplanning.group_bc_bor'):
+            return request.redirect('/')
 
         # Get Vendor from res.partner (adapt if your mapping differs)
         vendors = []
@@ -190,6 +192,7 @@ class BorApiController(http.Controller):
             'partner_name': vendor.name if vendor else 'No partner found.',
             'selected_date': selected_date.strftime('%Y-%m-%d') if date_filter and selected_date else '',
         }
+
         return request.render('bcplanning.web_partner_bor_template', datas)
 
     @http.route('/planningline/bor/save', type='jsonrpc', auth='user', methods=['POST'])
