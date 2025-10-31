@@ -21,4 +21,9 @@
     <field name="name">BC: BOR portal access</field>
     <field name="implied_ids" eval="[(4, ref('base.group_portal'))]"/>
   </record>
+
+  <record id="group_bc_taskresource" model="res.groups">
+    <field name="name">BC: Task for Resource portal access</field>
+    <field name="implied_ids" eval="[(4, ref('base.group_portal'))]"/>
+  </record>
 </odoo>

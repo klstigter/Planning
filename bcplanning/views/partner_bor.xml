@@ -58,7 +58,7 @@
                     <table class="table table-hover align-middle">
                       <thead class="table-light">
                         <tr>
-                          <th class="text-primary fw-bold fs-6">Task</th>
+                          <th class="text-primary fw-bold fs-6">Task (BOR)</th>
                           <th class="text-primary fw-bold fs-6" colspan="6">Planning Lines</th>
                         </tr>
                         <tr>
