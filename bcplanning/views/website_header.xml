@@ -13,13 +13,16 @@
             <li class="nav-item me-2"><a class="nav-link p-1" href="/partner/projects">Projects</a></li>
           </t>
           <t t-if="request.env.user and request.env.user.has_group('bcplanning.group_bc_resources')">
-            <li class="nav-item me-2"><a class="nav-link p-1" href="/partner/resources">Resources</a></li>
+            <li class="nav-item me-2"><a class="nav-link p-1" href="/partner/resources">Teams</a></li>
           </t>
           <t t-if="request.env.user and request.env.user.has_group('bcplanning.group_bc_tasks')">
-            <li class="nav-item me-2"><a class="nav-link p-1" href="/partner/tasks">Tasks</a></li>
+            <li class="nav-item me-2"><a class="nav-link p-1" href="/partner/tasks">Partner</a></li>
           </t>
           <t t-if="request.env.user and request.env.user.has_group('bcplanning.group_bc_bor')">
             <li class="nav-item"><a class="nav-link p-1" href="/partner/bor">BOR</a></li>
+          </t>
+          <t t-if="request.env.user and request.env.user.has_group('bcplanning.group_bc_taskresource')">
+            <li class="nav-item me-2"><a class="nav-link p-1" href="/partner/taskresource">Resource</a></li>
           </t>
         </ul>
       </div>

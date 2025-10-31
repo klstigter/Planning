@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-  <template id="web_partner_task_template">
+  <template id="web_taskresource_template">
     <t t-call="website.layout">
-      <div id="task_wrap" class="oe_structure">
+      <div id="taskresource_wrap" class="oe_structure">
         <div class="container py-4">
 
           <!-- Project context / breadcrumb: always visible so user knows project scope -->
@@ -59,14 +59,14 @@
                     <table class="table table-hover align-middle">
                       <thead class="table-light">
                         <tr>
-                          <th class="text-primary fw-bold fs-6">Task (Partner)</th>
-                          <th class="text-primary fw-bold fs-6" colspan="4">Planning Lines</th>
+                          <th class="text-primary fw-bold fs-6">Task (Resource)</th>
+                          <th class="text-primary fw-bold fs-6" colspan="3">Planning Lines</th>
                         </tr>
                         <tr>
                           <th>Description</th>
                           <th>Start</th>
                           <th class="d-none d-sm-table-cell">End</th>
-                          <th class="d-none d-sm-table-cell">Resource</th>
+                          <!-- <th class="d-none d-sm-table-cell">Resource</th> -->
                           <th>Actions</th>
                         </tr>
                       </thead>
@@ -109,7 +109,7 @@
                                       <input type="datetime-local" class="end-datetime-input form-control form-control-sm d-none"
                                              t-att-value="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%Y-%m-%dT%H:%M') or ''"/>
                                     </td>
-                                    <td class="d-none d-sm-table-cell">
+                                    <!-- <td class="d-none d-sm-table-cell">
                                       <span class="resource-view">
                                         <t t-esc="dict((r['id'], r['name']) for r in resources).get(pl['pl_resource_id'], '-')"/>
                                       </span>
@@ -122,7 +122,7 @@
                                           </option>
                                         </t>
                                       </select>
-                                    </td>
+                                    </td> -->
                                     <td>
                                       <button type="button" class="btn btn-sm btn-outline-primary edit-row">Edit</button>
                                       <button type="button" class="btn btn-sm btn-success save-row d-none">Save</button>
@@ -147,7 +147,7 @@
                                       <input type="datetime-local" class="end-datetime-input form-control form-control-sm d-none"
                                              t-att-value="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%Y-%m-%dT%H:%M') or ''"/>
                                     </td>
-                                    <td class="d-none d-sm-table-cell">
+                                    <!-- <td class="d-none d-sm-table-cell">
                                       <span class="resource-view">
                                         <t t-esc="dict((r['id'], r['name']) for r in resources).get(pl['pl_resource_id'], '-')"/>
                                       </span>
@@ -160,7 +160,7 @@
                                           </option>
                                         </t>
                                       </select>
-                                    </td>
+                                    </td> -->
                                     <td>
                                       <button type="button" class="btn btn-sm btn-outline-primary edit-row">Edit</button>
                                       <button type="button" class="btn btn-sm btn-success save-row d-none">Save</button>
@@ -172,7 +172,7 @@
                             </t>
                             <t t-else="">
                               <tr class="planningline-row" data-editing="0" t-att-data-task-id="task['id']">
-                                <td colspan="5">
+                                <td colspan="4">
                                   <div>
                                     <span class="text-muted">No.:</span>
                                     <span class="fw-bold ms-1" t-esc="task['task_no']"/>
@@ -192,7 +192,7 @@
                         </t>
                         <t t-if="not tasks">
                           <tr>
-                            <td colspan="5" class="text-center text-muted">No tasks found.</td>
+                            <td colspan="4" class="text-center text-muted">No tasks found.</td>
                           </tr>
                         </t>
                       </tbody>
@@ -249,7 +249,7 @@
                                 </div>
                               </div>
 
-                              <div>
+                              <!-- <div>
                                 <div class="small text-muted"><strong>Resource:</strong>
                                   <div>
                                     <span class="resource-view">
@@ -266,7 +266,7 @@
                                     </select>
                                   </div>
                                 </div>
-                              </div>
+                              </div> -->
 
                             </div>
                           </t>
