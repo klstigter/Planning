@@ -16,7 +16,7 @@
             <li class="nav-item me-2"><a class="nav-link p-1" href="/partner/resources">Teams</a></li>
           </t>
           <t t-if="request.env.user and request.env.user.has_group('bcplanning.group_bc_tasks')">
-            <li class="nav-item me-2"><a class="nav-link p-1" href="/partner/tasks">Partner</a></li>
+            <li class="nav-item me-2"><a class="nav-link p-1" href="/partner/tasks">Plannings</a></li>
           </t>
           <t t-if="request.env.user and request.env.user.has_group('bcplanning.group_bc_bor')">
             <li class="nav-item"><a class="nav-link p-1" href="/partner/bor">BOR</a></li>

@@ -9,19 +9,13 @@ publicWidget.registry.PartnerResources = publicWidget.Widget.extend({
         "click #btn-add-resource": "_onAddResource",
         "click .btn-edit": "_onEditResource",
         "click .btn-delete": "_onDeleteResource",
-        "click .btn-grant-portal": "_onGrantPortal",
         "click .btn-grant-portal-wizard": "_onGrantPortalWizard",
         "click .menu-toggle": "_onMenuToggle",
         "submit #resource-form": "_onSubmitResourceForm",
     },
 
     start: function () {
-        // debug: confirm widget started
-        try {
-            this._loadResources();
-        } catch (e) {
-            console.error("[bcplanning] start error", e);
-        }
+        this._loadResources();
         return this._super.apply(this, arguments);
     },
 
@@ -43,23 +37,33 @@ publicWidget.registry.PartnerResources = publicWidget.Widget.extend({
             .replace(/'/g, "&#39;");
     },
 
-    _menuCellHtml(isEnabled, menuKey, resId) {
+    _menuCellHtml(isEnabled, menuKey, resId, hasUser) {
+        if (!hasUser) {
+            return `<td class="text-center">
+                      <span class="menu-toggle disabled text-muted no-user" data-menu="${menuKey}" data-res-id="${resId}" title="No user linked. Grant portal access first.">
+                        <i class="fa fa-times" aria-hidden="true"></i>
+                      </span>
+                    </td>`;
+        }
         const cls = isEnabled ? 'text-success' : 'text-muted';
         const icon = isEnabled ? '<i class="fa fa-check" aria-hidden="true"></i>' : '<i class="fa fa-times" aria-hidden="true"></i>';
         return `<td class="text-center"><a href="#" class="menu-toggle ${cls}" data-menu="${menuKey}" data-res-id="${resId}" title="${menuKey}">${icon}</a></td>`;
     },
 
     _renderRowHtml(resource) {
-        // Portal indicator small icon (not clickable)
         const portalCell = resource.has_portal
-            ? `<td class="text-center portal-indicator" title="Portal: ${this._escape(resource.login || '—')}"><span class="portal-icon text-success"><i class="fa fa-check" aria-hidden="true"></i></span></td>`
-            : `<td class="text-center portal-indicator" title="No portal access"><span class="portal-icon text-muted"><i class="fa fa-times" aria-hidden="true"></i></span></td>`;
+            ? `<td class="text-center portal-indicator" title="Portal: ${this._escape(resource.login || '—')}">
+                 <span class="portal-icon text-success"><i class="fa fa-check" aria-hidden="true"></i></span>
+               </td>`
+            : `<td class="text-center portal-indicator" title="No portal access">
+                 <span class="portal-icon text-muted"><i class="fa fa-times" aria-hidden="true"></i></span>
+               </td>`;
 
-        const projectsCell = this._menuCellHtml(resource.bc_projects_menu, 'bc_projects_menu', resource.res_id);
-        const teamsCell = this._menuCellHtml(resource.bc_teams_menu, 'bc_teams_menu', resource.res_id);
-        const partnerCell = this._menuCellHtml(resource.bc_partner_menu, 'bc_partner_menu', resource.res_id);
-        const borCell = this._menuCellHtml(resource.bc_bor_menu, 'bc_bor_menu', resource.res_id);
-        const resourceCell = this._menuCellHtml(resource.bc_resource_menu, 'bc_resource_menu', resource.res_id);
+        const projectsCell = this._menuCellHtml(resource.bc_projects_menu, 'bc_projects_menu', resource.res_id, resource.has_user);
+        const teamsCell = this._menuCellHtml(resource.bc_teams_menu, 'bc_teams_menu', resource.res_id, resource.has_user);
+        const partnerCell = this._menuCellHtml(resource.bc_planning_menu, 'bc_planning_menu', resource.res_id, resource.has_user);
+        const borCell = this._menuCellHtml(resource.bc_bor_menu, 'bc_bor_menu', resource.res_id, resource.has_user);
+        const resourceCell = this._menuCellHtml(resource.bc_resource_menu, 'bc_resource_menu', resource.res_id, resource.has_user);
 
         const actionsHtml = `
             <td class="text-center">
@@ -150,34 +154,11 @@ publicWidget.registry.PartnerResources = publicWidget.Widget.extend({
         try {
             const out = await this._rpcDelete(resId);
             if (!out.ok) throw new Error(out.error || "Delete failed");
-            $row.remove();
-            if (!this.$("#resources-tbody").find("tr[data-res-id]").length) this.$("#resources-tbody").html(this._renderEmptyTbody());
+            await this._loadResources();
             this._setFeedback("Resource deleted successfully.", false);
         } catch (e) {
             console.error("[bcplanning] delete error:", e);
             this._setFeedback(e.message || "Error deleting resource");
-        }
-    },
-
-    async _onGrantPortal(ev) {
-        // kept for compatibility (not used in actions menu)
-        ev.preventDefault();
-        const $row = $(ev.currentTarget).closest("tr[data-res-id]");
-        if (!$row.length) return;
-        const resId = parseInt($row.data("res-id"), 10);
-        if (!confirm("Grant portal access to this resource?")) return;
-        const $btn = $(ev.currentTarget);
-        $btn.prop("disabled", true).text("Processing...");
-        try {
-            const out = await this._rpcGrantPortal(resId, false);
-            if (!out.ok) throw new Error(out.error || out.message || "Grant portal failed");
-            $row.find('.portal-indicator .portal-icon').removeClass('text-muted').addClass('text-success').html('<i class="fa fa-check" aria-hidden="true"></i>');
-            $btn.prop("disabled", true).text("Portal granted");
-            this._setFeedback(out.message || "Portal access granted.", false);
-        } catch (e) {
-            console.error("[bcplanning] grant portal error:", e);
-            $btn.prop("disabled", false).text("Grant portal");
-            this._setFeedback(e.message || "Error granting portal access");
         }
     },
 
@@ -196,7 +177,7 @@ publicWidget.registry.PartnerResources = publicWidget.Widget.extend({
                     if (confirm("No existing user found. Create & invite this user?")) {
                         const out2 = await this._rpcGrantPortal(partnerId, true);
                         if (!out2 || out2.ok !== true) throw new Error((out2 && (out2.error || out2.message)) || "Create & grant failed");
-                        this.$(`tr[data-res-id="${partnerId}"]`).find('.portal-indicator .portal-icon').removeClass('text-muted').addClass('text-success').html('<i class="fa fa-check" aria-hidden="true"></i>');
+                        await this._loadResources();
                         this._setFeedback(out2.message || "Portal user created and invited.", false);
                         return;
                     } else {
@@ -206,7 +187,7 @@ publicWidget.registry.PartnerResources = publicWidget.Widget.extend({
                 }
                 throw new Error(msg);
             }
-            this.$(`tr[data-res-id="${partnerId}"]`).find('.portal-indicator .portal-icon').removeClass('text-muted').addClass('text-success').html('<i class="fa fa-check" aria-hidden="true"></i>');
+            await this._loadResources();
             this._setFeedback(out.message || "Portal access granted.", false);
         } catch (err) {
             console.error("[bcplanning] grant portal wizard error:", err);
@@ -218,35 +199,51 @@ publicWidget.registry.PartnerResources = publicWidget.Widget.extend({
 
     async _onMenuToggle(ev) {
         ev.preventDefault();
-        const $a = $(ev.currentTarget);
-        const resId = parseInt($a.data("res-id"), 10);
-        const menu = $a.data("menu");
+        const $el = $(ev.currentTarget);
+        if ($el.hasClass('disabled') || $el.hasClass('no-user')) {
+            const resId = parseInt($el.data('res-id'), 10);
+            if (!resId) return;
+            if (!confirm("No linked user found for this resource. Create & grant portal access now?")) return;
+            try {
+                const out2 = await this._rpcGrantPortal(resId, true);
+                if (!out2 || out2.ok !== true) throw new Error(out2 && out2.error ? out2.error : 'Failed to create portal user');
+                await this._loadResources();
+                this._setFeedback(out2.message || "Portal user created and invited.", false);
+            } catch (err) {
+                console.error("[bcplanning] grant + create error:", err);
+                this._setFeedback(err.message || "Failed to create portal user");
+            }
+            return;
+        }
+
+        const resId = parseInt($el.data("res-id"), 10);
+        const menu = $el.data("menu");
         if (!resId || !menu) return;
-        // disable while processing
-        $a.addClass('disabled').attr('aria-disabled', 'true');
-        const origHtml = $a.html();
-        $a.html('<i class="fa fa-spinner fa-spin" aria-hidden="true"></i>');
+        $el.addClass('disabled').attr('aria-disabled', 'true');
+        const origHtml = $el.html();
+        $el.html('<i class="fa fa-spinner fa-spin" aria-hidden="true"></i>');
         try {
-            const isEnabled = $a.hasClass('text-success');
+            const isEnabled = $el.hasClass('text-success');
             const toValue = !isEnabled;
             const out = await this._rpcToggleMenu(resId, menu, toValue);
             if (!out || out.ok !== true) throw new Error((out && out.error) || 'Toggle failed');
             const serverVal = !!out.value;
             if (serverVal) {
-                $a.removeClass('text-muted').addClass('text-success').html('<i class="fa fa-check" aria-hidden="true"></i>');
+                $el.removeClass('text-muted').addClass('text-success').html('<i class="fa fa-check" aria-hidden="true"></i>');
             } else {
-                $a.removeClass('text-success').addClass('text-muted').html('<i class="fa fa-times" aria-hidden="true"></i>');
+                $el.removeClass('text-success').addClass('text-muted').html('<i class="fa fa-times" aria-hidden="true"></i>');
             }
             this._setFeedback('Updated setting', false);
         } catch (err) {
             console.error("[bcplanning] toggle menu error:", err);
-            $a.html(origHtml);
+            $el.html(origHtml);
             this._setFeedback(err.message || 'Failed updating setting');
         } finally {
-            $a.removeClass('disabled').removeAttr('aria-disabled');
+            $el.removeClass('disabled').removeAttr('aria-disabled');
         }
     },
 
+    // modal & submit are same as before
     _openModal({ title, resId = "", name = "", email = "" }) {
         const $modal = this.$("#resourceModal");
         if (!$modal.length) return;
@@ -300,17 +297,8 @@ publicWidget.registry.PartnerResources = publicWidget.Widget.extend({
             const out = isEdit ? await this._rpcUpdate(parseInt(resIdRaw, 10), name, email) : await this._rpcCreate(name, email);
             if (!out.ok) throw new Error(out.error || "Operation failed");
             this._closeModal();
-            if (isEdit) {
-                const $row = this.$(`tr[data-res-id="${resIdRaw}"]`);
-                $row.find(".res-name").text(out.resource.res_name || "");
-                $row.find(".res-email").text(out.resource.email || "");
-                this._setFeedback("Resource updated successfully.", false);
-            } else {
-                const $tbody = this.$("#resources-tbody");
-                $tbody.find('tr[data-empty="true"]').remove();
-                $tbody.prepend(this._renderRowHtml(out.resource));
-                this._setFeedback("Resource created successfully.", false);
-            }
+            await this._loadResources();
+            this._setFeedback(isEdit ? "Resource updated successfully." : "Resource created successfully.", false);
         } catch (e) {
             console.error("[bcplanning] submit error:", e);
             $feedback.text(e.message || "Error performing operation.");

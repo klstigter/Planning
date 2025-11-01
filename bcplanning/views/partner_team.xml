@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-  <!-- Partner Resources page: listing, create/edit modal and per-menu toggles -->
   <template id="web_partner_resource_template" name="BC Planning Partner Resources">
     <t t-call="website.layout">
       <div id="resource_wrap" class="oe_structure">
@@ -21,30 +20,18 @@
 
           <div class="table-responsive">
             <table id="resources-table" class="table table-bordered align-middle">
-              <colgroup>
-                <col style="width:6%"/>
-                <col style="width:26%"/>
-                <col style="width:20%"/>
-                <col style="width:6%"/>
-                <col style="width:8%"/>
-                <col style="width:8%"/>
-                <col style="width:8%"/>
-                <col style="width:8%"/>
-                <col style="width:8%"/>
-                <col style="width:12%"/>
-              </colgroup>
               <thead class="table-light">
                 <tr>
-                  <th>ID</th>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th class="text-center">Portal</th>
-                  <th class="text-center">Projects</th>
-                  <th class="text-center">Teams</th>
-                  <th class="text-center">Partner</th>
-                  <th class="text-center">BOR</th>
-                  <th class="text-center">Resource</th>
-                  <th class="text-center">Actions</th>
+                  <th class="col-id">ID</th>
+                  <th class="col-name">Name</th>
+                  <th class="col-email">Email</th>
+                  <th class="col-portal text-center">Portal</th>
+                  <th class="col-projects text-center">Projects</th>
+                  <th class="col-teams text-center">Teams</th>
+                  <th class="col-partner text-center">Planning</th>
+                  <th class="col-bor text-center">BOR</th>
+                  <th class="col-resource text-center">Resource</th>
+                  <th class="col-actions text-center">Actions</th>
                 </tr>
               </thead>
               <tbody id="resources-tbody">
@@ -56,7 +43,7 @@
           </div>
         </div>
 
-        <!-- Modal for Create/Update with Email input (Menus removed) -->
+        <!-- Modal for Create/Update -->
         <div class="modal fade" id="resourceModal" tabindex="-1" aria-labelledby="resourceModalLabel" aria-hidden="true">
           <div class="modal-dialog">
             <div class="modal-content">
@@ -90,10 +77,38 @@
       </div>
 
       <style>
-        .portal-indicator .fa { font-size: 1.1rem; vertical-align: middle; }
-        .portal-indicator .badge { padding: 0.35rem 0.45rem; font-size: 0.9rem; }
-        .resource-action-dropdown .dropdown-toggle { padding: .25rem .5rem; line-height: 1; }
-        .menu-toggle { cursor: pointer; display:inline-block; width: 28px; height:28px; text-align:center; vertical-align: middle; }
+        /* Make table columns adapt to content (no wrapping) */
+        #resources-table { width: 100%; table-layout: auto; }
+        #resources-table th, #resources-table td {
+          white-space: nowrap;            /* prevent text wrapping */
+          vertical-align: middle;
+        }
+
+        /* Apply minimum widths to avoid narrow columns and prevent header wrap */
+        #resources-table th.col-id, #resources-table td.col-id { min-width: 56px; }
+        #resources-table th.col-name, #resources-table td.col-name { min-width: 180px; }
+        #resources-table th.col-email, #resources-table td.col-email { min-width: 220px; }
+        #resources-table th.col-portal, #resources-table td.col-portal { min-width: 64px; text-align:center; }
+        #resources-table th.col-actions, #resources-table td.col-actions { min-width: 110px; text-align:center; }
+
+        /* Slightly wider for resource/project columns if needed */
+        #resources-table th.col-resource, #resources-table td.col-resource { min-width: 90px; text-align:center; }
+        #resources-table th.col-projects, #resources-table td.col-projects,
+        #resources-table th.col-teams, #resources-table td.col-teams,
+        #resources-table th.col-partner, #resources-table td.col-partner,
+        #resources-table th.col-bor, #resources-table td.col-bor {
+          min-width: 80px;
+          text-align: center;
+        }
+
+        /* Make table responsive: allow horizontal scroll on small screens instead of wrapping */
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+        /* Small adjustments for icons */
+        .menu-toggle { display:inline-block; width:28px; height:28px; text-align:center; line-height:28px; }
+        .portal-indicator .portal-icon { display:inline-block; width:20px; height:20px; line-height:20px; text-align:center; border-radius:50%; }
+        .portal-indicator .portal-icon.text-success { color: #fff; background: #2ca01c; }
+        .portal-indicator .portal-icon.text-muted { color: #6c757d; background: transparent; }
       </style>
     </t>
   </template>

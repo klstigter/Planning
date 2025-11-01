@@ -45,7 +45,7 @@
 
             <div class="o_setting_box">
               <group>
-                <field name="bcplanning_taskvendor_group_id"/>
+                <field name="bcplanning_planning_group_id"/>
               </group>
             </div>
 

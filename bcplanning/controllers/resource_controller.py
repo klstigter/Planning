@@ -1,17 +1,15 @@
 # -*- coding: utf-8 -*-
 """
-Complete controller for bcplanning partner resources.
+Controller for bcplanning partner resources with linked-user awareness.
 
-Routes (JSON-RPC endpoints):
- - /partner/resources            (GET)   : render partner resources page (website)
- - /partner/resources/data       (POST)  : return resources list (JSON)
- - /partner/resources/create     (POST)  : create resource (JSON)
- - /partner/resources/update     (POST)  : update resource (JSON)
- - /partner/resources/delete     (POST)  : delete resource and linked users (JSON)
- - /partner/resources/toggle_menu(type=jsonrpc)
-                                 (POST)  : toggle a menu flag (authoritative)
- - /partner/resources/grant_portal(type=jsonrpc)
-                                 (POST)  : grant portal access / create user
+Provides endpoints:
+ - GET  /partner/resources            -> render partner resources page (website)
+ - POST /partner/resources/data       -> JSONRPC: list resources for vendor (includes has_user/user_id)
+ - POST /partner/resources/create     -> JSONRPC: create res.partner (resource)
+ - POST /partner/resources/update     -> JSONRPC: update resource
+ - POST /partner/resources/delete     -> JSONRPC: delete resource (safe flow)
+ - POST /partner/resources/toggle_menu-> JSONRPC: toggle a menu flag (authoritative; disallow if no linked user)
+ - POST /partner/resources/grant_portal-> JSONRPC: grant portal + apply base group / create user
 """
 from odoo import http, _
 from odoo.http import request
@@ -24,11 +22,11 @@ _logger = logging.getLogger(__name__)
 
 
 class ResourceApiController(http.Controller):
-    # Mapping partner boolean fields -> ir.config_parameter keys (groups)
+    # Keep mapping as per your configuration
     MENU_PARAM_MAP = {
         'bc_projects_menu': 'bcplanning.setting.project_group_id',
         'bc_teams_menu': 'bcplanning.setting.team_group_id',
-        'bc_partner_menu': 'bcplanning.setting.task_group_id',         # per your config
+        'bc_planning_menu': 'bcplanning.setting.planning_group_id',
         'bc_bor_menu': 'bcplanning.setting.bor_group_id',
         'bc_resource_menu': 'bcplanning.setting.taskresource_group_id',
     }
@@ -37,9 +35,9 @@ class ResourceApiController(http.Controller):
     # Helpers
     # ---------------------------
     def _get_user_vendor(self):
-        """Return vendor partner for current user (commercial parent if present)."""
+        """Return mapped vendor partner for current user (commercial parent or partner)."""
+        user = request.env.user
         try:
-            user = request.env.user
             if user.partner_id and user.partner_id.parent_id:
                 partner = request.env['res.partner'].sudo().browse(user.partner_id.parent_id.id)
             else:
@@ -50,7 +48,7 @@ class ResourceApiController(http.Controller):
             return False
 
     def _get_group_from_param(self, param_key):
-        """Return res.groups record configured in ir.config_parameter (or None)."""
+        """Return res.groups record based on stored config parameter (string id)."""
         try:
             val = request.env['ir.config_parameter'].sudo().get_param(param_key)
             if not val:
@@ -70,8 +68,8 @@ class ResourceApiController(http.Controller):
 
     def _sync_partner_user_group(self, partner, group_param_key, add=True):
         """
-        Ensure that any existing res.users linked to partner have (or don't have) the group.
-        Does not create users.
+        Ensure linked user(s) of partner have (or do not have) the group.
+        Affects only existing linked users.
         """
         if not partner:
             return
@@ -80,35 +78,37 @@ class ResourceApiController(http.Controller):
             return
         Users = request.env['res.users'].sudo()
         users = Users.search([('partner_id', '=', partner.id)])
-        for u in users:
+        for user in users:
             try:
                 if add:
-                    if group.id not in u.group_ids.ids:
-                        u.write({'group_ids': [(4, group.id, 0)]})
+                    if group.id not in user.group_ids.ids:
+                        user.write({'group_ids': [(4, group.id, 0)]})
                 else:
-                    if group.id in u.group_ids.ids:
-                        u.write({'group_ids': [(3, group.id, 0)]})
+                    if group.id in user.group_ids.ids:
+                        user.write({'group_ids': [(3, group.id, 0)]})
             except Exception:
-                _logger.exception("Failed to %s group %s for user %s", 'add' if add else 'remove', group_param_key, u.id)
+                _logger.exception("Failed to modify group %s for user %s", group_param_key, user.id)
 
     def _collect_relevant_group_ids(self):
-        """Return a list of group ids that should be removed when deleting a resource."""
+        """
+        Collect group ids that should be removed from linked users when deleting a resource:
+          - portal group (base.group_portal)
+          - BC Planning base group (bcplanning.setting.base_group_id)
+          - any groups configured in MENU_PARAM_MAP
+        """
         gids = set()
-        # portal
         try:
             portal = request.env.ref('base.group_portal')
             if portal and portal.id:
                 gids.add(portal.id)
         except Exception:
             pass
-        # base planning group
         try:
             base_group = self._get_group_from_param('bcplanning.setting.base_group_id')
             if base_group and base_group.id:
                 gids.add(base_group.id)
         except Exception:
             pass
-        # configured menu groups
         for param in set(self.MENU_PARAM_MAP.values()):
             try:
                 grp = self._get_group_from_param(param)
@@ -118,16 +118,19 @@ class ResourceApiController(http.Controller):
                 _logger.exception("Failed reading menu group param %s", param)
         return list(gids)
 
-    def _resource_to_dict(self, partner, portal_partner_ids=None, portal_login_map=None):
+    def _resource_to_dict(self, partner, portal_partner_ids=None, portal_login_map=None, user_map=None):
+        has_user = bool(user_map and partner.id in user_map)
         return {
             'res_id': partner.id,
             'res_name': partner.name or '',
             'email': partner.email or '',
             'has_portal': bool(portal_partner_ids and partner.id in portal_partner_ids),
             'login': (portal_login_map.get(partner.id) if portal_login_map else False),
+            'has_user': has_user,
+            'user_id': (user_map.get(partner.id) if user_map else False),
             'bc_projects_menu': bool(partner.bc_projects_menu),
             'bc_teams_menu': bool(partner.bc_teams_menu),
-            'bc_partner_menu': bool(partner.bc_partner_menu),
+            'bc_planning_menu': bool(partner.bc_planning_menu),
             'bc_bor_menu': bool(partner.bc_bor_menu),
             'bc_resource_menu': bool(partner.bc_resource_menu),
         }
@@ -142,20 +145,22 @@ class ResourceApiController(http.Controller):
             return request.redirect('/')
         vendor = self._get_user_vendor()
         if not vendor:
-            return request.render('bcplanning.web_partner_no_records_template', {
+            datas = {
                 'message_title': _("No vendor mapping"),
                 'message_text': _("No vendor mapping found for your account. Please contact your administrator."),
-            })
+            }
+            return request.render('bcplanning.web_partner_no_records_template', datas)
         return request.render('bcplanning.web_partner_resource_template', {
             'partner_id': vendor.id,
             'partner_name': vendor.name or '',
         })
 
     # ---------------------------
-    # JSON endpoints (data)
+    # Data endpoints
     # ---------------------------
     @http.route('/partner/resources/data', type='jsonrpc', auth='user', methods=['POST'], csrf=False)
     def partner_resources_data(self):
+        """Return child partners (resources) for vendor with portal indicator, menu flags and user presence."""
         try:
             vendor = self._get_user_vendor()
             if not vendor:
@@ -180,12 +185,23 @@ class ResourceApiController(http.Controller):
                         portal_partner_ids.add(u.partner_id.id)
                         portal_login_map[u.partner_id.id] = u.login or portal_login_map.get(u.partner_id.id)
 
-            resources = [self._resource_to_dict(p, portal_partner_ids, portal_login_map) for p in partners]
+            # Map any linked users to partner_id (for has_user)
+            user_map = {}
+            if partner_ids:
+                linked_users = Users.search([('partner_id', 'in', partner_ids)])
+                for u in linked_users:
+                    if u.partner_id and u.partner_id.id:
+                        user_map.setdefault(u.partner_id.id, u.id)
+
+            resources = [self._resource_to_dict(p, portal_partner_ids, portal_login_map, user_map) for p in partners]
             return {'ok': True, 'partner_id': vendor.id, 'partner_name': vendor.name or '', 'resources': resources}
         except Exception:
             _logger.exception("Error in partner_resources_data: %s", traceback.format_exc())
             return {'ok': False, 'error': _('Failed to load resources.')}
 
+    # ---------------------------
+    # Create / Update / Delete
+    # ---------------------------
     @http.route('/partner/resources/create', type='jsonrpc', auth='user', methods=['POST'], csrf=False)
     def partner_resources_create(self, name=None, email=None, **kwargs):
         try:
@@ -205,7 +221,6 @@ class ResourceApiController(http.Controller):
                     val = kwargs.get(field)
                     vals[field] = True if str(val).lower() in ('1', 'true', 'yes', 'on') else False
             rec = request.env['res.partner'].sudo().create(vals)
-            # sync groups for true flags (affects existing users)
             for field, param in self.MENU_PARAM_MAP.items():
                 if vals.get(field):
                     self._sync_partner_user_group(rec, param, add=True)
@@ -268,7 +283,6 @@ class ResourceApiController(http.Controller):
         linked_users = Users.search([('partner_id', '=', rp.id)])
         try:
             group_ids_to_remove = self._collect_relevant_group_ids()
-            # Pre-checks
             for u in linked_users:
                 try:
                     if u.has_group('base.group_system'):
@@ -277,7 +291,6 @@ class ResourceApiController(http.Controller):
                     return {'ok': False, 'error': _('Cannot verify linked user groups for %s') % (u.login or u.name)}
                 if u.id == request.env.uid:
                     return {'ok': False, 'error': _('Cannot delete resource: linked user is the current logged-in user.')}
-            # Remove groups and unlink users
             for u in linked_users:
                 if group_ids_to_remove:
                     ops = []
@@ -294,7 +307,6 @@ class ResourceApiController(http.Controller):
                 except Exception:
                     _logger.exception("Failed to unlink/delete user %s", u.id)
                     return {'ok': False, 'error': _('Failed to delete linked user %s. Please remove dependencies and try again.') % (u.login or u.name)}
-            # unlink partner
             try:
                 rp.unlink()
             except Exception:
@@ -306,7 +318,7 @@ class ResourceApiController(http.Controller):
             return {'ok': False, 'error': _('Failed to delete resource.')}
 
     # ---------------------------
-    # Toggle menu (authoritative)
+    # Toggle menu (authoritative; require linked user)
     # ---------------------------
     @http.route('/partner/resources/toggle_menu', type='jsonrpc', auth='user', methods=['POST'], csrf=False)
     def partner_resources_toggle_menu(self, res_id=None, menu_field=None, value=None):
@@ -322,13 +334,19 @@ class ResourceApiController(http.Controller):
             return {'ok': False, 'error': _('Resource not found.')}
         if rp.parent_id.id != vendor.id:
             return {'ok': False, 'error': _('Access denied for this resource.')}
+
+        # enforce linked user presence
+        Users = request.env['res.users'].sudo()
+        linked_user = Users.search([('partner_id', '=', rp.id)], limit=1)
+        if not linked_user:
+            return {'ok': False, 'error': _('No linked user found for this resource. Grant portal access before toggling menus.')}
+
         b = True if str(value).lower() in ('1', 'true', 'yes', 'on') else False
         try:
             rp.sudo().write({menu_field: b})
             param = self.MENU_PARAM_MAP.get(menu_field)
             if param:
                 self._sync_partner_user_group(rp, param, add=b)
-            # authoritative values
             fresh = request.env['res.partner'].sudo().browse(rp.id)
             final_val = bool(fresh[menu_field])
             user_group_applied = False
@@ -359,6 +377,7 @@ class ResourceApiController(http.Controller):
             if rp.parent_id.id != vendor.id:
                 return {'ok': False, 'error': _('Access denied for this resource.')}
             Users = request.env['res.users'].sudo()
+
             # Try portal wizard first (if available)
             try:
                 portal_wizard_model = request.env['portal.wizard.user']
@@ -371,7 +390,6 @@ class ResourceApiController(http.Controller):
                             base_group = self._get_group_from_param('bcplanning.setting.base_group_id')
                             if base_group and base_group.id and base_group.id not in user.group_ids.ids:
                                 user.write({'group_ids': [(4, base_group.id, 0)]})
-                            # best-effort: set default password if none
                             try:
                                 if not getattr(user, 'password_crypt', None):
                                     user.sudo().write({'password': '123'})
@@ -384,7 +402,8 @@ class ResourceApiController(http.Controller):
                         _logger.exception("portal wizard flow failed; falling back: %s", traceback.format_exc())
             except Exception:
                 pass
-            # fallback grant/link/create
+
+            # fallback: portal group
             try:
                 portal_group = request.env.ref('base.group_portal')
                 portal_group_id = portal_group.id
@@ -392,6 +411,7 @@ class ResourceApiController(http.Controller):
                 portal_group_id = False
             if not portal_group_id:
                 return {'ok': False, 'error': _('Portal group not found on this database.')}
+
             # 1) existing linked user
             user_linked = Users.sudo().search([('partner_id', '=', rp.id)], limit=1)
             if user_linked and user_linked.exists():
@@ -402,6 +422,7 @@ class ResourceApiController(http.Controller):
                 if base_group and base_group.id and base_group.id not in user_linked.group_ids.ids:
                     user_linked.write({'group_ids': [(4, base_group.id, 0)]})
                 return {'ok': True, 'created': False, 'message': _('Portal group added to existing user linked to partner.'), 'login': user_linked.login, 'user_id': user_linked.id}
+
             # 2) existing user by email
             if rp.email:
                 existing = Users.sudo().search([('login', '=', rp.email)], limit=1)
@@ -414,6 +435,7 @@ class ResourceApiController(http.Controller):
                     if base_group and base_group.id and base_group.id not in existing.group_ids.ids:
                         existing.write({'group_ids': [(4, base_group.id, 0)]})
                     return {'ok': True, 'created': False, 'linked_existing': True, 'message': _('Existing user linked to partner and granted portal access.'), 'login': existing.login, 'user_id': existing.id}
+
             # 3) create new user if requested
             if create:
                 if not rp.email:
