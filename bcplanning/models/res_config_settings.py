@@ -23,5 +23,39 @@ class ResConfigSettings(models.TransientModel):
         string="Company Id",
         config_parameter='bcplanning.setting.company.id'
     )
-
-
+    bcplanning_base_group_id = fields.Many2one(
+        'res.groups',
+        string='BC Planning Base Group',
+        config_parameter='bcplanning.setting.base_group_id',
+        help="Select the group used for Planning base"
+    )
+    bcplanning_project_group_id = fields.Many2one(
+        'res.groups',
+        string='BC Planning Project Group',
+        config_parameter='bcplanning.setting.project_group_id',
+        help="Select the group used for Project menu"
+    )
+    bcplanning_team_group_id = fields.Many2one(
+        'res.groups',
+        string='BC Planning Team Group',
+        config_parameter='bcplanning.setting.team_group_id',
+        help="Select the group used for team menu"
+    )
+    bcplanning_taskvendor_group_id = fields.Many2one(
+        'res.groups',
+        string='BC Planning Task Vendor Group',
+        config_parameter='bcplanning.setting.task_group_id',
+        help="Select the group used for task of vendor menu"
+    )
+    bcplanning_bor_group_id = fields.Many2one(
+        'res.groups',
+        string='BC Planning BOR Group',
+        config_parameter='bcplanning.setting.bor_group_id',
+        help="Select the group used for BOR menu"
+    )
+    bcplanning_taskresource_group_id = fields.Many2one(
+        'res.groups',
+        string='BC Planning Task Resource Group',
+        config_parameter='bcplanning.setting.taskresource_group_id',
+        help="Select the group used for task of resource menu"
+    )

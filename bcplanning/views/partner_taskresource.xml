@@ -295,7 +295,7 @@
           </div> <!-- row -->
 
         </div> <!-- container -->
-      </div> <!-- task_wrap -->
+      </div>
     </t>
   </template>
 </odoo>

@@ -7,7 +7,7 @@
     <field name="arch" type="xml">
       <xpath expr="//form" position="inside">
         <app data-string="BCPlanning" string="BCPlanning" name="bcplanning">
-          <block title="BCPlanning Settings" name="bcplanning_settings_block">
+          <block title="Business Central API" name="bc_settings_block">
             <setting string="Client Id" help="Business Central Client Id">
               <field name="bcplanning_setting_client_id"/>
             </setting>
@@ -23,6 +23,43 @@
             <setting string="Company Id" help="Business Central Company Id (GUID)">
               <field name="bcplanning_setting_company_id"/>
             </setting>
+          </block>
+          <block title="User Group" name="usergroup_settings_block">            
+            <div class="o_setting_box">
+              <group>
+                <field name="bcplanning_base_group_id"/>
+              </group>
+            </div>
+
+            <div class="o_setting_box">
+              <group>
+                <field name="bcplanning_project_group_id"/>
+              </group>
+            </div>
+
+            <div class="o_setting_box">
+              <group>
+                <field name="bcplanning_team_group_id"/>
+              </group>
+            </div>
+
+            <div class="o_setting_box">
+              <group>
+                <field name="bcplanning_taskvendor_group_id"/>
+              </group>
+            </div>
+
+            <div class="o_setting_box">
+              <group>
+                <field name="bcplanning_bor_group_id"/>
+              </group>
+            </div>
+
+            <div class="o_setting_box">
+              <group>
+                <field name="bcplanning_taskresource_group_id"/>
+              </group>
+            </div>
           </block>
         </app>
       </xpath>

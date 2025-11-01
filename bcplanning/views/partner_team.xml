@@ -1,88 +1,100 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-    <!-- Resources list template with Email column and modal including email input -->
-    <template id="web_partner_resource_template">
-        <t t-call="website.layout">
-            <div id="task_wrap" class="oe_structure">
-                <div class="container my-4">
-                    <h3>Partner Resources List</h3>
-                    <p class="mb-3">
-                        Partner:
-                        <strong id="partner-name"><t t-esc="partner_name"/></strong>
-                        <span class="text-muted ms-2">(ID: <span id="partner-id" t-esc="partner_id"/>)</span>
-                    </p>
+  <!-- Partner Resources page: listing, create/edit modal and per-menu toggles -->
+  <template id="web_partner_resource_template" name="BC Planning Partner Resources">
+    <t t-call="website.layout">
+      <div id="resource_wrap" class="oe_structure">
+        <div class="container my-4">
+          <h3>Partner Resources List</h3>
+          <p class="mb-3">
+            Partner:
+            <strong id="partner-name"><t t-esc="partner_name"/></strong>
+            <span class="text-muted ms-2">(ID: <span id="partner-id" t-esc="partner_id"/>)</span>
+          </p>
 
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <button id="btn-add-resource" class="btn btn-primary">
-                            <i class="fa fa-plus me-1" aria-hidden="true"></i> Add Resource
-                        </button>
-                        <div id="resources-feedback" class="text-danger small"></div>
-                    </div>
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <button id="btn-add-resource" class="btn btn-primary">
+              <i class="fa fa-plus me-1" aria-hidden="true"></i> Add Resource
+            </button>
+            <div id="resources-feedback" class="text-danger small"></div>
+          </div>
 
-                    <div class="table-responsive">
-                        <table id="resources-table" class="table table-bordered align-middle">
-                            <colgroup>
-                                <col style="width: 8%"/>
-                                <col style="width: 36%"/>
-                                <col style="width: 26%"/>
-                                <col style="width: 10%"/>
-                                <col style="width: 20%"/>
-                            </colgroup>
-                            <thead class="table-light">
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th class="text-center">Portal</th>
-                                    <th class="text-center">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="resources-tbody">
-                                <tr data-empty="true">
-                                    <td colspan="5" class="text-center text-muted">Loading...</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+          <div class="table-responsive">
+            <table id="resources-table" class="table table-bordered align-middle">
+              <colgroup>
+                <col style="width:6%"/>
+                <col style="width:26%"/>
+                <col style="width:20%"/>
+                <col style="width:6%"/>
+                <col style="width:8%"/>
+                <col style="width:8%"/>
+                <col style="width:8%"/>
+                <col style="width:8%"/>
+                <col style="width:8%"/>
+                <col style="width:12%"/>
+              </colgroup>
+              <thead class="table-light">
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th class="text-center">Portal</th>
+                  <th class="text-center">Projects</th>
+                  <th class="text-center">Teams</th>
+                  <th class="text-center">Partner</th>
+                  <th class="text-center">BOR</th>
+                  <th class="text-center">Resource</th>
+                  <th class="text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="resources-tbody">
+                <tr data-empty="true">
+                  <td colspan="10" class="text-center text-muted">Loading...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Modal for Create/Update with Email input (Menus removed) -->
+        <div class="modal fade" id="resourceModal" tabindex="-1" aria-labelledby="resourceModalLabel" aria-hidden="true">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <form id="resource-form">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="resourceModalLabel">Add Resource</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
+                <div class="modal-body">
+                  <input type="hidden" id="resource-id" value=""/>
+                  <div class="mb-3">
+                    <label for="resource-name" class="form-label">Name</label>
+                    <input type="text" id="resource-name" class="form-control" placeholder="Enter resource name" required="required"/>
+                  </div>
+                  <div class="mb-3">
+                    <label for="resource-email" class="form-label">Email</label>
+                    <input type="email" id="resource-email" class="form-control" placeholder="Enter email" required="required"/>
+                  </div>
 
-                <!-- Modal for Create/Update with Email input -->
-                <div class="modal fade" id="resourceModal" tabindex="-1" aria-labelledby="resourceModalLabel" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <form id="resource-form">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="resourceModalLabel">Add Resource</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                </div>
-                                <div class="modal-body">
-                                    <input type="hidden" id="resource-id" value=""/>
-                                    <div class="mb-3">
-                                        <label for="resource-name" class="form-label">Name</label>
-                                        <input type="text" id="resource-name" class="form-control" placeholder="Enter resource name" required="required"/>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="resource-email" class="form-label">Email</label>
-                                        <input type="email" id="resource-email" class="form-control" placeholder="Enter email" required="required"/>
-                                    </div>
-                                    <div id="resource-form-feedback" class="text-danger small"></div>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                                    <button type="submit" class="btn btn-primary" id="resource-save-btn">Save</button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
+                  <div id="resource-form-feedback" class="text-danger small"></div>
                 </div>
-
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                  <button type="submit" class="btn btn-primary" id="resource-save-btn">Save</button>
+                </div>
+              </form>
             </div>
+          </div>
+        </div>
 
-            <style>
-                .portal-indicator .fa { font-size: 1.1rem; vertical-align: middle; }
-                .portal-indicator .badge { padding: 0.35rem 0.45rem; font-size: 0.9rem; }
-                .resource-action-dropdown .dropdown-toggle { padding: .25rem .5rem; line-height: 1; }
-            </style>
-        </t>
-    </template>
+      </div>
+
+      <style>
+        .portal-indicator .fa { font-size: 1.1rem; vertical-align: middle; }
+        .portal-indicator .badge { padding: 0.35rem 0.45rem; font-size: 0.9rem; }
+        .resource-action-dropdown .dropdown-toggle { padding: .25rem .5rem; line-height: 1; }
+        .menu-toggle { cursor: pointer; display:inline-block; width: 28px; height:28px; text-align:center; vertical-align: middle; }
+      </style>
+    </t>
+  </template>
 </odoo>
