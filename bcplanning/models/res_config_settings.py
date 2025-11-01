@@ -41,10 +41,10 @@ class ResConfigSettings(models.TransientModel):
         config_parameter='bcplanning.setting.team_group_id',
         help="Select the group used for team menu"
     )
-    bcplanning_taskvendor_group_id = fields.Many2one(
+    bcplanning_planning_group_id = fields.Many2one(
         'res.groups',
         string='BC Planning Task Vendor Group',
-        config_parameter='bcplanning.setting.task_group_id',
+        config_parameter='bcplanning.setting.planning_group_id',
         help="Select the group used for task of vendor menu"
     )
     bcplanning_bor_group_id = fields.Many2one(

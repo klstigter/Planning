@@ -11,7 +11,7 @@ class ResPartner(models.Model):
     MENU_PARAM_MAP = {
         'bc_projects_menu': 'bcplanning.setting.project_group_id',
         'bc_teams_menu': 'bcplanning.setting.team_group_id',
-        'bc_partner_menu': 'bcplanning.setting.task_group_id',
+        'bc_planning_menu': 'bcplanning.setting.planning_group_id',
         'bc_bor_menu': 'bcplanning.setting.bor_group_id',
         'bc_resource_menu': 'bcplanning.setting.taskresource_group_id',
     }
@@ -30,7 +30,7 @@ class ResPartner(models.Model):
         inverse="_inverse_menu_flags",
         store=False,
     )
-    bc_partner_menu = fields.Boolean(
+    bc_planning_menu = fields.Boolean(
         string="BC Partner Menu",
         compute="_compute_menu_flags",
         inverse="_inverse_menu_flags",

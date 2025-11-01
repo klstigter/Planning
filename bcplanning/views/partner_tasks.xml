@@ -35,7 +35,7 @@
               <div class="btn-toolbar justify-content-center" role="toolbar" aria-label="Date toolbar">
                 <div class="btn-group me-2" role="group" aria-label="Prev Today Next">
                   <button id="btn-prev-day" type="button" class="btn btn-outline-primary btn-sm">&lt;&lt;</button>
-                  <button id="btn-today" type="button" class="btn btn-outline-secondary btn-sm">Selected Date</button>
+                  <button id="btn-today" type="button" class="btn btn-outline-secondary btn-sm">Select Date</button>
                   <button id="btn-next-day" type="button" class="btn btn-outline-primary btn-sm">&gt;&gt;</button>
                 </div>
                 <div class="btn-group me-2" role="group" aria-label="Clear filter">
@@ -59,7 +59,7 @@
                     <table class="table table-hover align-middle">
                       <thead class="table-light">
                         <tr>
-                          <th class="text-primary fw-bold fs-6">Task (Partner)</th>
+                          <th class="text-primary fw-bold fs-6">Task (Planning)</th>
                           <th class="text-primary fw-bold fs-6" colspan="4">Planning Lines</th>
                         </tr>
                         <tr>
