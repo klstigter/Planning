@@ -64,9 +64,9 @@
                         </tr>
                         <tr>
                           <th>Description</th>
-                          <th>Start</th>
-                          <th class="d-none d-sm-table-cell">End</th>
                           <th class="d-none d-sm-table-cell">Resource</th>
+                          <th>Start</th>
+                          <th class="d-none d-sm-table-cell">End</th>                          
                           <th>Actions</th>
                         </tr>
                       </thead>
@@ -94,21 +94,6 @@
                                         <span class="ms-1" t-esc="task['task_desc']"/>
                                       </div>
                                     </td>
-                                    <td>
-                                      <span class="data_planningline_id d-none"><t t-esc="pl['id']"/></span>
-                                      <span class="start-datetime-view" t-att-data-start="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%dT%H:%M') or ''">
-                                        <t t-esc="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%d %H:%M') or ''"/>
-                                      </span>
-                                      <input type="datetime-local" class="start-datetime-input form-control form-control-sm d-none"
-                                             t-att-value="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%dT%H:%M') or ''"/>
-                                    </td>
-                                    <td class="d-none d-sm-table-cell">
-                                      <span class="end-datetime-view" t-att-data-end="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%Y-%m-%dT%H:%M') or ''">
-                                        <t t-esc="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%Y-%m-%d %H:%M') or ''"/>
-                                      </span>
-                                      <input type="datetime-local" class="end-datetime-input form-control form-control-sm d-none"
-                                             t-att-value="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%Y-%m-%dT%H:%M') or ''"/>
-                                    </td>
                                     <td class="d-none d-sm-table-cell">
                                       <span class="resource-view">
                                         <t t-esc="dict((r['id'], r['name']) for r in resources).get(pl['pl_resource_id'], '-')"/>
@@ -123,6 +108,21 @@
                                         </t>
                                       </select>
                                     </td>
+                                    <td>
+                                      <span class="data_planningline_id d-none"><t t-esc="pl['id']"/></span>
+                                      <span class="start-datetime-view" t-att-data-start="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%dT%H:%M') or ''">
+                                        <t t-esc="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%d %H:%M') or ''"/>
+                                      </span>
+                                      <input type="datetime-local" class="start-datetime-input form-control form-control-sm d-none"
+                                             t-att-value="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%dT%H:%M') or ''"/>
+                                    </td>
+                                    <td class="d-none d-sm-table-cell">
+                                      <span class="end-datetime-view" t-att-data-end="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%Y-%m-%dT%H:%M') or ''">
+                                        <t t-esc="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%Y-%m-%d %H:%M') or ''"/>
+                                      </span>
+                                      <input type="datetime-local" class="end-datetime-input form-control form-control-sm d-none"
+                                             t-att-value="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%Y-%m-%dT%H:%M') or ''"/>
+                                    </td>                                    
                                     <td>
                                       <button type="button" class="btn btn-sm btn-outline-primary edit-row">Edit</button>
                                       <button type="button" class="btn btn-sm btn-success save-row d-none">Save</button>
@@ -132,6 +132,20 @@
                                 </t>
                                 <t t-if="row_counter &gt;= 2">
                                   <tr class="planningline-row" data-editing="0" t-att-data-task-id="task['id']">
+                                    <td class="d-none d-sm-table-cell">
+                                      <span class="resource-view">
+                                        <t t-esc="dict((r['id'], r['name']) for r in resources).get(pl['pl_resource_id'], '-')"/>
+                                      </span>
+                                      <select class="resource-select form-select form-select-sm d-none">
+                                        <option value=""> - </option>
+                                        <t t-foreach="resources" t-as="resource">
+                                          <option t-att-value="resource['id']"
+                                                  t-att-selected="resource['id'] == pl['pl_resource_id'] and 'selected' or False">
+                                            <t t-esc="resource['name']"/>
+                                          </option>
+                                        </t>
+                                      </select>
+                                    </td>
                                     <td>
                                       <span class="data_planningline_id d-none"><t t-esc="pl['id']"/></span>
                                       <span class="start-datetime-view" t-att-data-start="pl['pl_start_datetime'] and pl['pl_start_datetime'].strftime('%Y-%m-%dT%H:%M') or ''">
@@ -147,20 +161,7 @@
                                       <input type="datetime-local" class="end-datetime-input form-control form-control-sm d-none"
                                              t-att-value="pl['pl_end_datetime'] and pl['pl_end_datetime'].strftime('%Y-%m-%dT%H:%M') or ''"/>
                                     </td>
-                                    <td class="d-none d-sm-table-cell">
-                                      <span class="resource-view">
-                                        <t t-esc="dict((r['id'], r['name']) for r in resources).get(pl['pl_resource_id'], '-')"/>
-                                      </span>
-                                      <select class="resource-select form-select form-select-sm d-none">
-                                        <option value=""> - </option>
-                                        <t t-foreach="resources" t-as="resource">
-                                          <option t-att-value="resource['id']"
-                                                  t-att-selected="resource['id'] == pl['pl_resource_id'] and 'selected' or False">
-                                            <t t-esc="resource['name']"/>
-                                          </option>
-                                        </t>
-                                      </select>
-                                    </td>
+                                    
                                     <td>
                                       <button type="button" class="btn btn-sm btn-outline-primary edit-row">Edit</button>
                                       <button type="button" class="btn btn-sm btn-success save-row d-none">Save</button>
