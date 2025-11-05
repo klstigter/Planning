@@ -59,3 +59,33 @@ class ResConfigSettings(models.TransientModel):
         config_parameter='bcplanning.setting.taskresource_group_id',
         help="Select the group used for task of resource menu"
     )
+
+    def action_get_token(self):
+        """Called from settings view button. Gets token using bcplanning_utils and shows a popup notification."""
+        try:
+            # call the utility model to fetch token; use sudo in case settings access is restricted
+            token = self.env['bcplanning_utils'].sudo()._get_token()
+        except Exception as e:
+            # Show error notification to user
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': 'Get Token — Error',
+                    'message': str(e),
+                    'type': 'danger',
+                    'sticky': True,
+                }
+            }
+
+        # Show the token in a popup notification. If token is large you can set sticky True.
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'Business Central Token',
+                'message': token,
+                'type': 'success',
+                'sticky': True,
+            }
+        }
