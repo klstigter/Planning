@@ -83,7 +83,7 @@ class TaskResourceApiController(http.Controller):
 
             pl_domain = [
                 ('task_id.job_id.id', '=', project.id),
-                ('vendor_id', '=', partner_id),
+                #('vendor_id', '=', partner_id), # remove this filter (2025.11.05)
                 ('resource_id', '=', user.partner_id.id)  # filter planning line per resource
             ]
             if date_filter:
@@ -98,7 +98,7 @@ class TaskResourceApiController(http.Controller):
         else:
             # all planninglines for this vendor (maybe filtered by date)
             pl_domain = [
-                ('vendor_id', '=', partner_id),
+                #('vendor_id', '=', partner_id), # remove this filter (2025.11.05)
                 ('resource_id', '=', user.partner_id.id)  # filter planning line per resource
             ]
             if date_filter:
@@ -113,8 +113,8 @@ class TaskResourceApiController(http.Controller):
             if projects:
                 for p in projects:
                     pl_for_project_domain = [
-                        ('task_id.job_id.id', '=', p.id),
-                        ('vendor_id', '=', vendor.id),
+                        ('task_id.job_id.id', '=', p.id)
+                        #,('vendor_id', '=', vendor.id),  # remove this filter (2025.11.05)
                     ]
                     if date_filter:
                         pl_for_project_domain += [('start_datetime', '>=', start_dt_str), ('start_datetime', '<=', end_dt_str)]
@@ -134,7 +134,7 @@ class TaskResourceApiController(http.Controller):
             pl_data = []
             pl_domain = [
                 ('task_id', '=', t.id),
-                ('vendor_id', '=', partner_id),
+                #('vendor_id', '=', partner_id), # remove this filter (2025.11.05)
                 ('resource_id', '=', user.partner_id.id),  # filter planning line per resource
             ]
             if date_filter:

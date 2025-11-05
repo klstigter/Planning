@@ -234,7 +234,7 @@ class bcplanning_line(models.Model):
                                             ('resource','Resource'),
                                             ('item','Item'),
                                             ('text','Text')
-                                        ], required=True) # BC: "Job Planning Line".Type
+                                        ], default='text', required=False) # BC: "Job Planning Line".Type
 
     resource_id = fields.Many2one(
         comodel_name='res.partner', 
