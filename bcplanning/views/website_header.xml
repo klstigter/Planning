@@ -31,7 +31,7 @@
           <!-- Plannings -->
           <t t-if="request.env.user and request.env.user.has_group('bcplanning.group_bc_tasks')">
             <li class="nav-item me-2">
-              <a class="nav-link p-1" href="/partner/tasks"><strong>Plannings</strong></a>
+              <a class="nav-link p-1" href="/partner/tasks"><strong>Planning</strong></a>
             </li>
             <!-- separator only if BOR is also shown; hidden on small screens -->
             <t t-if="request.env.user and request.env.user.has_group('bcplanning.group_bc_bor')">
