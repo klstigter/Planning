@@ -23,6 +23,15 @@
             <setting string="Company Id" help="Business Central Company Id (GUID)">
               <field name="bcplanning_setting_company_id"/>
             </setting>
+            <!-- Put the button inside a group box so it appears with the other settings -->
+            <div class="o_setting_box">
+              <group>
+                <button name="action_get_token"
+                        type="object"
+                        string="Get Token"
+                        class="btn btn-primary o_form_button_save"/>
+              </group>
+            </div>
           </block>
           <block title="User Group" name="usergroup_settings_block">            
             <div class="o_setting_box">
