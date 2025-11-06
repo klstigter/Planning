@@ -283,15 +283,15 @@ class bcplanning_line(models.Model):
             if rec.planning_line_type != 'text':
                 rec.text_value = False
 
-    @api.constrains('planning_line_type', 'resource_id', 'product_id', 'text_value')
-    def _check_one_target_filled(self):
-        for rec in self:
-            if rec.planning_line_type == 'resource' and not rec.resource_id:
-                raise ValidationError("Resource is required when type is 'Resource'.")
-            if rec.planning_line_type == 'item' and not rec.product_id:
-                raise ValidationError("Item is required when type is 'Item'.")
-            if rec.planning_line_type == 'text' and not rec.text_value:
-                raise ValidationError("Text is required when type is 'Text'.")
+    # @api.constrains('planning_line_type', 'resource_id', 'product_id', 'text_value')
+    # def _check_one_target_filled(self):
+    #     for rec in self:
+    #         if rec.planning_line_type == 'resource' and not rec.resource_id:
+    #             raise ValidationError("Resource is required when type is 'Resource'.")
+    #         if rec.planning_line_type == 'item' and not rec.product_id:
+    #             raise ValidationError("Item is required when type is 'Item'.")
+    #         if rec.planning_line_type == 'text' and not rec.text_value:
+    #             raise ValidationError("Text is required when type is 'Text'.")
 
     #endregion of Many2one depend on selection
     
