@@ -3,3 +3,4 @@
 .vscode/lunch.json
 bcplanning/controllers/__pycache__/*.pyc
 bcplanning/models/__pycache__/*.pyc
+bcplanning/models/__pycache__/bcproject.cpython-310.pyc
